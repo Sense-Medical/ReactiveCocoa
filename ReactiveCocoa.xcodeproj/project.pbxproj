@@ -71,7 +71,6 @@
 		57A4D1EA1BA13D7A00F7D4B1 /* RACKVOProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 7A70657E1A3F88B8001E8354 /* RACKVOProxy.m */; };
 		57A4D1EB1BA13D7A00F7D4B1 /* RACKVOTrampoline.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648619EDA41200A782A9 /* RACKVOTrampoline.m */; };
 		57A4D1EC1BA13D7A00F7D4B1 /* RACMulticastConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648819EDA41200A782A9 /* RACMulticastConnection.m */; };
-		57A4D1ED1BA13D7A00F7D4B1 /* RACObjCRuntime.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648B19EDA41200A782A9 /* RACObjCRuntime.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		57A4D1EE1BA13D7A00F7D4B1 /* RACPassthroughSubscriber.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648D19EDA41200A782A9 /* RACPassthroughSubscriber.m */; };
 		57A4D1EF1BA13D7A00F7D4B1 /* RACQueueScheduler.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648F19EDA41200A782A9 /* RACQueueScheduler.m */; };
 		57A4D1F01BA13D7A00F7D4B1 /* RACReplaySubject.m in Sources */ = {isa = PBXBuildFile; fileRef = D037649219EDA41200A782A9 /* RACReplaySubject.m */; };
@@ -283,7 +282,6 @@
 		A9B3158C1B3940750001CB9C /* RACKVOProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 7A70657E1A3F88B8001E8354 /* RACKVOProxy.m */; };
 		A9B3158D1B3940750001CB9C /* RACKVOTrampoline.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648619EDA41200A782A9 /* RACKVOTrampoline.m */; };
 		A9B3158E1B3940750001CB9C /* RACMulticastConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648819EDA41200A782A9 /* RACMulticastConnection.m */; };
-		A9B3158F1B3940750001CB9C /* RACObjCRuntime.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648B19EDA41200A782A9 /* RACObjCRuntime.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		A9B315901B3940750001CB9C /* RACPassthroughSubscriber.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648D19EDA41200A782A9 /* RACPassthroughSubscriber.m */; };
 		A9B315911B3940750001CB9C /* RACQueueScheduler.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648F19EDA41200A782A9 /* RACQueueScheduler.m */; };
 		A9B315921B3940750001CB9C /* RACReplaySubject.m in Sources */ = {isa = PBXBuildFile; fileRef = D037649219EDA41200A782A9 /* RACReplaySubject.m */; };
@@ -559,8 +557,6 @@
 		D03765A319EDA41200A782A9 /* RACMulticastConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = D037648719EDA41200A782A9 /* RACMulticastConnection.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		D03765A419EDA41200A782A9 /* RACMulticastConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648819EDA41200A782A9 /* RACMulticastConnection.m */; };
 		D03765A519EDA41200A782A9 /* RACMulticastConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648819EDA41200A782A9 /* RACMulticastConnection.m */; };
-		D03765AA19EDA41200A782A9 /* RACObjCRuntime.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648B19EDA41200A782A9 /* RACObjCRuntime.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		D03765AB19EDA41200A782A9 /* RACObjCRuntime.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648B19EDA41200A782A9 /* RACObjCRuntime.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		D03765AE19EDA41200A782A9 /* RACPassthroughSubscriber.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648D19EDA41200A782A9 /* RACPassthroughSubscriber.m */; };
 		D03765AF19EDA41200A782A9 /* RACPassthroughSubscriber.m in Sources */ = {isa = PBXBuildFile; fileRef = D037648D19EDA41200A782A9 /* RACPassthroughSubscriber.m */; };
 		D03765B019EDA41200A782A9 /* RACQueueScheduler.h in Headers */ = {isa = PBXBuildFile; fileRef = D037648E19EDA41200A782A9 /* RACQueueScheduler.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -1024,8 +1020,6 @@
 		D037648719EDA41200A782A9 /* RACMulticastConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RACMulticastConnection.h; sourceTree = "<group>"; };
 		D037648819EDA41200A782A9 /* RACMulticastConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RACMulticastConnection.m; sourceTree = "<group>"; };
 		D037648919EDA41200A782A9 /* RACMulticastConnection+Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RACMulticastConnection+Private.h"; sourceTree = "<group>"; };
-		D037648A19EDA41200A782A9 /* RACObjCRuntime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RACObjCRuntime.h; sourceTree = "<group>"; };
-		D037648B19EDA41200A782A9 /* RACObjCRuntime.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RACObjCRuntime.m; sourceTree = "<group>"; };
 		D037648C19EDA41200A782A9 /* RACPassthroughSubscriber.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RACPassthroughSubscriber.h; sourceTree = "<group>"; };
 		D037648D19EDA41200A782A9 /* RACPassthroughSubscriber.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RACPassthroughSubscriber.m; sourceTree = "<group>"; };
 		D037648E19EDA41200A782A9 /* RACQueueScheduler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RACQueueScheduler.h; sourceTree = "<group>"; };
@@ -1429,8 +1423,6 @@
 				D037648719EDA41200A782A9 /* RACMulticastConnection.h */,
 				D037648819EDA41200A782A9 /* RACMulticastConnection.m */,
 				D037648919EDA41200A782A9 /* RACMulticastConnection+Private.h */,
-				D037648A19EDA41200A782A9 /* RACObjCRuntime.h */,
-				D037648B19EDA41200A782A9 /* RACObjCRuntime.m */,
 				D037648C19EDA41200A782A9 /* RACPassthroughSubscriber.h */,
 				D037648D19EDA41200A782A9 /* RACPassthroughSubscriber.m */,
 				D037648E19EDA41200A782A9 /* RACQueueScheduler.h */,
@@ -2222,23 +2214,32 @@
 				LastUpgradeCheck = 0710;
 				ORGANIZATIONNAME = GitHub;
 				TargetAttributes = {
+					57A4D1AF1BA13D7A00F7D4B1 = {
+						LastSwiftMigration = 0800;
+					};
 					7DFBED021CDB8C9500EE435B = {
 						CreatedOnToolsVersion = 7.3.1;
+						LastSwiftMigration = 0800;
 					};
 					A9B315531B3940610001CB9C = {
 						CreatedOnToolsVersion = 7.0;
+						LastSwiftMigration = 0800;
 					};
 					D04725E919E49ED7006002AA = {
 						CreatedOnToolsVersion = 6.1;
+						LastSwiftMigration = 0800;
 					};
 					D04725F419E49ED7006002AA = {
 						CreatedOnToolsVersion = 6.1;
+						LastSwiftMigration = 0800;
 					};
 					D047260B19E49F82006002AA = {
 						CreatedOnToolsVersion = 6.1;
+						LastSwiftMigration = 0800;
 					};
 					D047261519E49F82006002AA = {
 						CreatedOnToolsVersion = 6.1;
+						LastSwiftMigration = 0800;
 					};
 				};
 			};
@@ -2397,7 +2398,6 @@
 				57A4D1EA1BA13D7A00F7D4B1 /* RACKVOProxy.m in Sources */,
 				57A4D1EB1BA13D7A00F7D4B1 /* RACKVOTrampoline.m in Sources */,
 				57A4D1EC1BA13D7A00F7D4B1 /* RACMulticastConnection.m in Sources */,
-				57A4D1ED1BA13D7A00F7D4B1 /* RACObjCRuntime.m in Sources */,
 				57A4D1EE1BA13D7A00F7D4B1 /* RACPassthroughSubscriber.m in Sources */,
 				57A4D1EF1BA13D7A00F7D4B1 /* RACQueueScheduler.m in Sources */,
 				57A4D1F01BA13D7A00F7D4B1 /* RACReplaySubject.m in Sources */,
@@ -2561,7 +2561,6 @@
 				A9B3158D1B3940750001CB9C /* RACKVOTrampoline.m in Sources */,
 				A9B3158E1B3940750001CB9C /* RACMulticastConnection.m in Sources */,
 				C7142DBE1CDEA194009F402D /* CocoaAction.swift in Sources */,
-				A9B3158F1B3940750001CB9C /* RACObjCRuntime.m in Sources */,
 				A9B315901B3940750001CB9C /* RACPassthroughSubscriber.m in Sources */,
 				A9B315911B3940750001CB9C /* RACQueueScheduler.m in Sources */,
 				A9B315921B3940750001CB9C /* RACReplaySubject.m in Sources */,
@@ -2640,7 +2639,6 @@
 				D85C652A1C0D84C7005A77AD /* Flatten.swift in Sources */,
 				D0C312CF19EF2A5800984962 /* Bag.swift in Sources */,
 				D037658019EDA41200A782A9 /* RACEmptySequence.m in Sources */,
-				D03765AA19EDA41200A782A9 /* RACObjCRuntime.m in Sources */,
 				D037654A19EDA41200A782A9 /* NSUserDefaults+RACSupport.m in Sources */,
 				D037660E19EDA41200A782A9 /* RACUnarySequence.m in Sources */,
 				D03765FE19EDA41200A782A9 /* RACTargetQueueScheduler.m in Sources */,
@@ -2814,7 +2812,6 @@
 				D037650F19EDA41200A782A9 /* NSNotificationCenter+RACSupport.m in Sources */,
 				D03765FB19EDA41200A782A9 /* RACSubscriptionScheduler.m in Sources */,
 				D037658119EDA41200A782A9 /* RACEmptySequence.m in Sources */,
-				D03765AB19EDA41200A782A9 /* RACObjCRuntime.m in Sources */,
 				D0C312E019EF2A5800984962 /* ObjectiveCBridging.swift in Sources */,
 				D037654B19EDA41200A782A9 /* NSUserDefaults+RACSupport.m in Sources */,
 				D037660F19EDA41200A782A9 /* RACUnarySequence.m in Sources */,
@@ -2972,9 +2969,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=appletvsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -2987,9 +2984,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=appletvsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -3002,9 +2999,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=appletvsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -3017,9 +3014,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2461BA13F9700F7D4B1 /* tvOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=appletvsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -3032,6 +3029,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2441BA13F9700F7D4B1 /* tvOS-Application.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
@@ -3046,6 +3044,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2441BA13F9700F7D4B1 /* tvOS-Application.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
@@ -3060,6 +3059,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2441BA13F9700F7D4B1 /* tvOS-Application.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
@@ -3074,6 +3074,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 57A4D2441BA13F9700F7D4B1 /* tvOS-Application.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SDKROOT)/Developer/Library/Frameworks",
 					"$(inherited)",
@@ -3088,9 +3089,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=watchsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -3103,9 +3104,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=watchsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -3118,9 +3119,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=watchsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -3133,9 +3134,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A97451351B3A935E00F48E55 /* watchOS-Framework.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=watchsimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"DTRACE_PROBES_DISABLED=1",
@@ -3149,14 +3150,16 @@
 			baseConfigurationReference = D047262919E49FE8006002AA /* Debug.xcconfig */;
 			buildSettings = {
 				BITCODE_GENERATION_MODE = bitcode;
+				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_BITCODE = YES;
+				ENABLE_BITCODE = NO;
 				ENABLE_TESTABILITY = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
+				SWIFT_VERSION = 2.3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -3169,13 +3172,15 @@
 			baseConfigurationReference = D047262B19E49FE8006002AA /* Release.xcconfig */;
 			buildSettings = {
 				BITCODE_GENERATION_MODE = bitcode;
+				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_BITCODE = YES;
+				ENABLE_BITCODE = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
+				SWIFT_VERSION = 2.3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -3189,7 +3194,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
@@ -3203,7 +3207,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
@@ -3215,7 +3218,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263719E49FE8006002AA /* Mac-Application.xcconfig */;
 			buildSettings = {
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
@@ -3230,7 +3232,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263719E49FE8006002AA /* Mac-Application.xcconfig */;
 			buildSettings = {
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
@@ -3245,10 +3246,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				USER_HEADER_SEARCH_PATHS = ReactiveCocoa/extobjc;
@@ -3259,10 +3259,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				USER_HEADER_SEARCH_PATHS = ReactiveCocoa/extobjc;
@@ -3302,12 +3301,14 @@
 			baseConfigurationReference = D047262A19E49FE8006002AA /* Profile.xcconfig */;
 			buildSettings = {
 				BITCODE_GENERATION_MODE = bitcode;
+				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_BITCODE = YES;
+				ENABLE_BITCODE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
+				SWIFT_VERSION = 2.3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -3321,7 +3322,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
@@ -3333,7 +3333,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263719E49FE8006002AA /* Mac-Application.xcconfig */;
 			buildSettings = {
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
@@ -3348,10 +3347,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				USER_HEADER_SEARCH_PATHS = ReactiveCocoa/extobjc;
@@ -3377,12 +3375,14 @@
 			baseConfigurationReference = D047262C19E49FE8006002AA /* Test.xcconfig */;
 			buildSettings = {
 				BITCODE_GENERATION_MODE = bitcode;
+				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_BITCODE = YES;
+				ENABLE_BITCODE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactivecocoa.$(PRODUCT_NAME:rfc1034identifier)-Tests";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
+				SWIFT_VERSION = 2.3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -3396,7 +3396,6 @@
 			buildSettings = {
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
@@ -3408,7 +3407,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263719E49FE8006002AA /* Mac-Application.xcconfig */;
 			buildSettings = {
-				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
 					"$(inherited)",
@@ -3423,10 +3421,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D047263419E49FE8006002AA /* iOS-Framework.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
+				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = ReactiveCocoa/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				USER_HEADER_SEARCH_PATHS = ReactiveCocoa/extobjc;

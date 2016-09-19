@@ -221,8 +221,8 @@ scopedExample("`startWithFailed`") {
 /*:
  ### `startWithInterrupted`
  Creates a Signal from the producer, then adds exactly one observer to
- the Signal, which will invoke the given callback when a `failed` event is
- received.
+ the Signal, which will invoke the given callback when an `interrupted` event 
+ is received.
  
  Returns a Disposable which can be used to interrupt the work associated
  with the Signal.
@@ -387,7 +387,7 @@ scopedExample("`collect(predicate:)` matching values inclusively") {
 }
 
 /*:
- ### `collect(count:)` matching values exclusively
+ ### `collect(predicate:)` matching values exclusively
  Returns a producer that will yield an array of values based on a predicate
  which matches the values collected and the next value.
  
@@ -446,16 +446,16 @@ scopedExample("`skip`") {
 
 /*:
  ### `materialize`
- Forwards the latest value from `self` whenever `sampler` sends a Next
- event.
  
- If `sampler` fires before a value has been observed on `self`, nothing
- happens.
- 
- Returns a producer that will send values from `self`, sampled (possibly
- multiple times) by `sampler`, then complete once both input producers have
- completed, or interrupt if either input producer is interrupted.
- */
+Treats all Events from the input producer as plain values, allowing them to be
+manipulated just like any other value.
+
+In other words, this brings Events “into the monad.”
+
+When a Completed or Failed event is received, the resulting producer will send
+the Event itself and then complete. When an Interrupted event is received,
+the resulting producer will send the Event itself and then interrupt.
+*/
 scopedExample("`materialize`") {
     SignalProducer<Int, NoError>(values: [ 1, 2, 3, 4 ])
         .materialize()
@@ -667,8 +667,8 @@ scopedExample("`retry`") {
             }
         }
         .retry(1)
-        .startWithNext { value in
-            print(value)
+        .startWithResult { result in
+            print(result)
         }
 }
 
@@ -755,7 +755,7 @@ scopedExample("`flatMap(.Latest)`") {
  */
 scopedExample("`flatMapError`") {
     SignalProducer<Int, NSError>(error: NSError(domain: "flatMapError", code: 42, userInfo: nil))
-        .flatMapError { SignalProducer<Int, NSError>(value: $0.code) }
+        .flatMapError { SignalProducer<Int, NoError>(value: $0.code) }
         .startWithNext { value in
             print(value)
         }

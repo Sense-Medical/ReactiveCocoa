@@ -701,6 +701,44 @@ class SignalProducerSpec: QuickSpec {
 
 					expect(values) == [1, 2, 3]
 				}
+
+				// TODO: remove when the method is marked unavailable.
+				it("receives next values with erroring signal") {
+					let (producer, observer) = SignalProducer<Int, TestError>.pipe()
+
+					var values = [Int]()
+					producer.startWithNext { next in
+						values.append(next)
+					}
+
+					observer.sendNext(1)
+					observer.sendNext(2)
+					observer.sendNext(3)
+
+					observer.sendCompleted()
+
+					expect(values) == [1, 2, 3]
+				}
+
+				it("receives results") {
+					let (producer, observer) = SignalProducer<Int, TestError>.pipe()
+
+					var results: [Result<Int, TestError>] = []
+					producer.startWithResult { results.append($0) }
+
+					observer.sendNext(1)
+					observer.sendNext(2)
+					observer.sendNext(3)
+					observer.sendFailed(.Default)
+
+					observer.sendCompleted()
+
+					expect(results).to(haveCount(4))
+					expect(results[0].value) == 1
+					expect(results[1].value) == 2
+					expect(results[2].value) == 3
+					expect(results[3].error) == .Default
+				}
 			}
 		}
 
@@ -866,6 +904,11 @@ class SignalProducerSpec: QuickSpec {
 				let scheduler = TestScheduler()
 				let producer = timer(1, onScheduler: scheduler, withLeeway: 0)
 
+				let startDate = scheduler.currentDate
+				let tick1 = startDate.dateByAddingTimeInterval(1)
+				let tick2 = startDate.dateByAddingTimeInterval(2)
+				let tick3 = startDate.dateByAddingTimeInterval(3)
+
 				var dates: [NSDate] = []
 				producer.startWithNext { dates.append($0) }
 
@@ -873,18 +916,16 @@ class SignalProducerSpec: QuickSpec {
 				expect(dates) == []
 
 				scheduler.advanceByInterval(1)
-				let firstTick = scheduler.currentDate
-				expect(dates) == [firstTick]
+				expect(dates) == [tick1]
 
 				scheduler.advance()
-				expect(dates) == [firstTick]
+				expect(dates) == [tick1]
 
 				scheduler.advanceByInterval(0.2)
-				let secondTick = scheduler.currentDate
-				expect(dates) == [firstTick, secondTick]
+				expect(dates) == [tick1, tick2]
 
 				scheduler.advanceByInterval(1)
-				expect(dates) == [firstTick, secondTick, scheduler.currentDate]
+				expect(dates) == [tick1, tick2, tick3]
 			}
 
 			it("should release the signal when disposed") {
@@ -1688,6 +1729,25 @@ class SignalProducerSpec: QuickSpec {
 				expect(result?.error) == TestError.Default
 			}
 
+			it("should forward interruptions from the original producer") {
+				let (original, observer) = SignalProducer<Int, NoError>.pipe()
+
+				var subsequentStarted = false
+				let subsequent = SignalProducer<Int, NoError> { observer, _ in
+					subsequentStarted = true
+				}
+
+				var interrupted = false
+				let producer = original.then(subsequent)
+				producer.startWithInterrupted {
+					interrupted = true
+				}
+				expect(subsequentStarted) == false
+
+				observer.sendInterrupted()
+				expect(interrupted) == true
+			}
+
 			it("should complete when both inputs have completed") {
 				let (original, originalObserver) = SignalProducer<Int, NoError>.pipe()
 				let (subsequent, subsequentObserver) = SignalProducer<String, NoError>.pipe()
@@ -1912,7 +1972,10 @@ class SignalProducerSpec: QuickSpec {
 				it("emits new values") {
 					var last: Int?
 
-					replayedProducer.startWithNext { last = $0 }
+					replayedProducer
+						.assumeNoErrors()
+						.startWithNext { last = $0 }
+					
 					expect(last).to(beNil())
 
 					observer.sendNext(1)
@@ -1944,6 +2007,7 @@ class SignalProducerSpec: QuickSpec {
 					var last: Int?
 
 					replayedProducer
+						.assumeNoErrors()
 						.startWithNext { last = $0 }
 					expect(last) == 1
 				}
@@ -1975,6 +2039,7 @@ class SignalProducerSpec: QuickSpec {
 					var values: [Int] = []
 
 					disposable = replayedProducer
+						.assumeNoErrors()
 						.startWithNext { values.append($0) }
 					expect(values) == [ 3, 4 ]
 
@@ -1985,6 +2050,7 @@ class SignalProducerSpec: QuickSpec {
 					values = []
 
 					replayedProducer
+						.assumeNoErrors()
 						.startWithNext { values.append($0) }
 					expect(values) == [ 4, 5 ]
 				}
@@ -2169,10 +2235,25 @@ class SignalProducerSpec: QuickSpec {
 					let logger = TestLogger(expectations: expectations)
 					
 					let (producer, observer) = SignalProducer<Int, TestError>.pipe()
-					producer.logEvents(logger: logger.logEvent).startWithNext { _ in }
+					producer
+						.logEvents(logger: logger.logEvent)
+						.start()
 					
 					observer.sendNext(1)
 					observer.sendCompleted()
+				}
+			}
+
+			describe("init(values) ambiguity") {
+				it("should not be a SignalProducer<SignalProducer<Int, NoError>, NoError>") {
+
+					let producer1: SignalProducer<Int, NoError> = SignalProducer.empty
+					let producer2: SignalProducer<Int, NoError> = SignalProducer.empty
+
+					let producer = SignalProducer(values: [producer1, producer2])
+						.flatten(.Merge)
+
+					expect(producer is SignalProducer<Int, NoError>) == true
 				}
 			}
 		}
