@@ -8,9 +8,9 @@ import enum Result.NoError
 ///
 /// Actions enforce serial execution. Any attempt to execute an action multiple
 /// times concurrently will return an error.
-public final class Action<Input, Output, Error: ErrorType> {
-	private let executeClosure: Input -> SignalProducer<Output, Error>
-	private let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
+public final class Action<Input, Output, Error: Swift.Error> {
+	fileprivate let executeClosure: (Input) -> SignalProducer<Output, Error>
+	fileprivate let eventsObserver: Signal<Event<Output, Error>, NoError>.Observer
 
 	/// A signal of all events generated from applications of the Action.
 	///
@@ -35,25 +35,25 @@ public final class Action<Input, Output, Error: ErrorType> {
 		return AnyProperty(_executing)
 	}
 
-	private let _executing: MutableProperty<Bool> = MutableProperty(false)
+	fileprivate let _executing: MutableProperty<Bool> = MutableProperty(false)
 
 	/// Whether the action is currently enabled.
 	public var enabled: AnyProperty<Bool> {
 		return AnyProperty(_enabled)
 	}
 
-	private let _enabled: MutableProperty<Bool> = MutableProperty(false)
+	fileprivate let _enabled: MutableProperty<Bool> = MutableProperty(false)
 
 	/// Whether the instantiator of this action wants it to be enabled.
-	private let userEnabled: AnyProperty<Bool>
+	fileprivate let userEnabled: AnyProperty<Bool>
 
 	/// This queue is used for read-modify-write operations on the `_executing`
 	/// property.
-	private let executingQueue = dispatch_queue_create("org.reactivecocoa.ReactiveCocoa.Action.executingQueue", DISPATCH_QUEUE_SERIAL)
+	fileprivate let executingQueue = DispatchQueue(label: "org.reactivecocoa.ReactiveCocoa.Action.executingQueue", attributes: [])
 
 	/// Whether the action should be enabled for the given combination of user
 	/// enabledness and executing status.
-	private static func shouldBeEnabled(userEnabled userEnabled: Bool, executing: Bool) -> Bool {
+	fileprivate static func shouldBeEnabled(userEnabled: Bool, executing: Bool) -> Bool {
 		return userEnabled && !executing
 	}
 
@@ -65,7 +65,7 @@ public final class Action<Input, Output, Error: ErrorType> {
 	///                enabled.
 	///   - execute: A closure that returns the signal producer returned by
 	///              calling `apply(Input)` on the action.
-	public init<P: PropertyType where P.Value == Bool>(enabledIf: P, _ execute: Input -> SignalProducer<Output, Error>) {
+	public init<P: PropertyType>(enabledIf: P, _ execute: @escaping (Input) -> SignalProducer<Output, Error>) where P.Value == Bool {
 		executeClosure = execute
 		userEnabled = AnyProperty(enabledIf)
 
@@ -85,7 +85,7 @@ public final class Action<Input, Output, Error: ErrorType> {
 	/// - parameters:
 	///   - execute: A closure that returns the signal producer returned by
 	///              calling `apply(Input)` on the action.
-	public convenience init(_ execute: Input -> SignalProducer<Output, Error>) {
+	public convenience init(_ execute: @escaping (Input) -> SignalProducer<Output, Error>) {
 		self.init(enabledIf: ConstantProperty(true), execute)
 	}
 
@@ -104,12 +104,11 @@ public final class Action<Input, Output, Error: ErrorType> {
 	/// - parameters:
 	///   - input: A value that will be passed to the closure creating the signal
 	///            producer.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func apply(input: Input) -> SignalProducer<Output, ActionError<Error>> {
+	public func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>> {
 		return SignalProducer { observer, disposable in
 			var startedExecuting = false
 
-			dispatch_sync(self.executingQueue) {
+			self.executingQueue.sync {
 				if self._enabled.value {
 					self._executing.value = true
 					startedExecuting = true
@@ -117,7 +116,7 @@ public final class Action<Input, Output, Error: ErrorType> {
 			}
 
 			if !startedExecuting {
-				observer.sendFailed(.NotEnabled)
+				observer.sendFailed(.notEnabled)
 				return
 			}
 
@@ -125,7 +124,7 @@ public final class Action<Input, Output, Error: ErrorType> {
 				disposable.addDisposable(signalDisposable)
 
 				signal.observe { event in
-					observer.action(event.mapError(ActionError.ProducerError))
+					observer.action(event.mapError(ActionError.producerError))
 					self.eventsObserver.sendNext(event)
 				}
 			}
@@ -144,7 +143,7 @@ public protocol ActionType {
 	associatedtype Output
 	/// The type of error when the action fails. If errors aren't possible then
 	/// `NoError` can be used.
-	associatedtype Error: ErrorType
+	associatedtype Error: Swift.Error
 
 	/// Whether the action is currently enabled.
 	var enabled: AnyProperty<Bool> { get }
@@ -163,7 +162,7 @@ public protocol ActionType {
 	/// - parameters:
 	///   - input: A value that will be passed to the closure creating the signal
 	///            producer.
-	func apply(input: Input) -> SignalProducer<Output, ActionError<Error>>
+	func apply(_ input: Input) -> SignalProducer<Output, ActionError<Error>>
 }
 
 extension Action: ActionType {
@@ -174,21 +173,21 @@ extension Action: ActionType {
 
 /// The type of error that can occur from Action.apply, where `Error` is the 
 /// type of error that can be generated by the specific Action instance.
-public enum ActionError<Error: ErrorType>: ErrorType {
+public enum ActionError<Error: Swift.Error>: Swift.Error {
 	/// The producer returned from apply() was started while the Action was
 	/// disabled.
-	case NotEnabled
+	case notEnabled
 
 	/// The producer returned from apply() sent the given error.
-	case ProducerError(Error)
+	case producerError(Error)
 }
 
 public func == <Error: Equatable>(lhs: ActionError<Error>, rhs: ActionError<Error>) -> Bool {
 	switch (lhs, rhs) {
-	case (.NotEnabled, .NotEnabled):
+	case (.notEnabled, .notEnabled):
 		return true
 
-	case let (.ProducerError(left), .ProducerError(right)):
+	case let (.producerError(left), .producerError(right)):
 		return left == right
 
 	default:

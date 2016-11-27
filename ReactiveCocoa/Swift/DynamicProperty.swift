@@ -10,16 +10,16 @@ import enum Result.NoError
 @objc public final class DynamicProperty: RACDynamicPropertySuperclass, MutablePropertyType {
 	public typealias Value = AnyObject?
 
-	private weak var object: NSObject?
-	private let keyPath: String
+	fileprivate weak var object: NSObject?
+	fileprivate let keyPath: String
 
-	private var property: MutableProperty<AnyObject?>?
+	fileprivate var property: MutableProperty<AnyObject?>?
 
 	/// The current value of the property, as read and written using Key-Value
 	/// Coding.
 	public var value: AnyObject? {
 		@objc(rac_value) get {
-			return object?.valueForKeyPath(keyPath)
+			return object?.value(forKeyPath: keyPath) as AnyObject?
 		}
 
 		@objc(setRac_value:) set(newValue) {
@@ -58,15 +58,15 @@ import enum Result.NoError
 		/// This is made possible by strong reference cycles.
 		super.init()
 
-		object?.rac_valuesForKeyPath(keyPath, observer: nil)?
+		object?.rac_values(forKeyPath: keyPath, observer: nil)?
 			.toSignalProducer()
 			.start { event in
 				switch event {
-				case let .Next(newValue):
+				case let .next(newValue):
 					self.property?.value = newValue
-				case let .Failed(error):
+				case let .failed(error):
 					fatalError("Received unexpected error from KVO signal: \(error)")
-				case .Interrupted, .Completed:
+				case .interrupted, .completed:
 					self.property = nil
 				}
 			}
@@ -76,16 +76,16 @@ import enum Result.NoError
 // MARK: Operators
 
 /// Binds a signal to a `DynamicProperty`, automatically bridging values to Objective-C.
-public func <~ <S: SignalType where S.Value: _ObjectiveCBridgeable, S.Error == NoError>(property: DynamicProperty, signal: S) -> Disposable {
+public func <~ <S: SignalType>(property: DynamicProperty, signal: S) -> Disposable where S.Value: _ObjectiveCBridgeable, S.Error == NoError {
 	return property <~ signal.map { $0._bridgeToObjectiveC() }
 }
 
 /// Binds a signal producer to a `DynamicProperty`, automatically bridging values to Objective-C.
-public func <~ <S: SignalProducerType where S.Value: _ObjectiveCBridgeable, S.Error == NoError>(property: DynamicProperty, producer: S) -> Disposable {
+public func <~ <S: SignalProducerType>(property: DynamicProperty, producer: S) -> Disposable where S.Value: _ObjectiveCBridgeable, S.Error == NoError {
 	return property <~ producer.map { $0._bridgeToObjectiveC() }
 }
 
 /// Binds `destinationProperty` to the latest values of `sourceProperty`, automatically bridging values to Objective-C.
-public func <~ <Source: PropertyType where Source.Value: _ObjectiveCBridgeable>(destinationProperty: DynamicProperty, sourceProperty: Source) -> Disposable {
+public func <~ <Source: PropertyType>(destinationProperty: DynamicProperty, sourceProperty: Source) -> Disposable where Source.Value: _ObjectiveCBridgeable {
 	return destinationProperty <~ sourceProperty.producer
 }

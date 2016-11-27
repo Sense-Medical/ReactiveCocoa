@@ -15,7 +15,7 @@ import Result
 /// producer may see a different version of Events. The Events may arrive in a
 /// different order between Signals, or the stream might be completely
 /// different!
-public struct SignalProducer<Value, Error: ErrorType> {
+public struct SignalProducer<Value, Error: Swift.Error> {
 	public typealias ProducedSignal = Signal<Value, Error>
 
 	private let startHandler: (Signal<Value, Error>.Observer, CompositeDisposable) -> Void
@@ -28,7 +28,7 @@ public struct SignalProducer<Value, Error: ErrorType> {
 	///
 	/// - parameters:
 	///   - signal: A signal to observe after starting the producer.
-	public init<S: SignalType where S.Value == Value, S.Error == Error>(signal: S) {
+	public init<S: SignalType>(signal: S) where S.Value == Value, S.Error == Error {
 		self.init { observer, disposable in
 			disposable += signal.observe(observer)
 		}
@@ -47,7 +47,7 @@ public struct SignalProducer<Value, Error: ErrorType> {
 	///
 	/// - parameters:
 	///   - startHandler: A closure that accepts observer and a disposable.
-	public init(_ startHandler: (Signal<Value, Error>.Observer, CompositeDisposable) -> Void) {
+	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, CompositeDisposable) -> Void) {
 		self.startHandler = startHandler
 	}
 
@@ -85,10 +85,10 @@ public struct SignalProducer<Value, Error: ErrorType> {
 	///             `Failure`.
 	public init(result: Result<Value, Error>) {
 		switch result {
-		case let .Success(value):
+		case let .success(value):
 			self.init(value: value)
 
-		case let .Failure(error):
+		case let .failure(error):
 			self.init(error: error)
 		}
 	}
@@ -99,7 +99,7 @@ public struct SignalProducer<Value, Error: ErrorType> {
 	/// - parameters:
 	///   - values: A sequence of values that a `Signal` will send as separate
 	///             `Next` events and then complete.
-	public init<S: SequenceType where S.Generator.Element == Value>(values: S) {
+	public init<S: Sequence>(values: S) where S.Iterator.Element == Value {
 		self.init { observer, disposable in
 			for value in values {
 				observer.sendNext(value)
@@ -162,8 +162,8 @@ public struct SignalProducer<Value, Error: ErrorType> {
 	///
 	/// - returns: A tuple of `SignalProducer` to replay values from and
 	///            an `observer` to put replayable values to.
-	@available(*, deprecated, message="Use properties instead. 'buffer' will be removed in RAC 5.0")
-	public static func buffer(capacity: Int) -> (SignalProducer, Signal<Value, Error>.Observer) {
+	@available(*, deprecated, message: "Use properties instead. 'buffer' will be removed in RAC 5.0")
+	public static func buffer(_ capacity: Int) -> (SignalProducer, Signal<Value, Error>.Observer) {
 		precondition(capacity >= 0, "Invalid capacity: \(capacity)")
 
 		// Used as an atomic variable so we can remove observers without needing
@@ -259,7 +259,7 @@ public struct SignalProducer<Value, Error: ErrorType> {
 	/// - returns: A `SignalProducer` that will forward `Success`ful `result` as
 	///            `Next` event and then complete or `Failed` event if `result`
 	///            is a `Failure`.
-	public static func attempt(operation: () -> Result<Value, Error>) -> SignalProducer {
+	public static func attempt(_ operation: @escaping () -> Result<Value, Error>) -> SignalProducer {
 		return self.init { observer, disposable in
 			operation().analysis(ifSuccess: { value in
 				observer.sendNext(value)
@@ -279,7 +279,7 @@ public struct SignalProducer<Value, Error: ErrorType> {
 	///
 	/// - parameters:
 	///   - setUp: A closure that accepts a `signal` and `disposable`.
-	public func startWithSignal(@noescape setUp: (Signal<Value, Error>, Disposable) -> Void) {
+	public func startWithSignal(_ setUp: @escaping (Signal<Value, Error>, Disposable) -> Void) {
 		let (signal, observer) = Signal<Value, Error>.pipe()
 
 		// Disposes of the work associated with the SignalProducer and any
@@ -315,12 +315,12 @@ public struct SignalProducer<Value, Error: ErrorType> {
 
 /// A uniquely identifying token for Observers that are replaying values in
 /// BufferState.
-private final class ReplayBuffer<Value> {
-	private var values: [Value] = []
+fileprivate final class ReplayBuffer<Value> {
+	fileprivate var values: [Value] = []
 }
 
 
-private struct BufferState<Value, Error: ErrorType> {
+fileprivate struct BufferState<Value, Error: Swift.Error> {
 	/// All values in the buffer.
 	var values: [Value] = []
 
@@ -338,7 +338,7 @@ private struct BufferState<Value, Error: ErrorType> {
 
 	/// Appends a new value to the buffer, trimming it down to the given
 	/// capacity if necessary.
-	mutating func addValue(value: Value, upToCapacity capacity: Int) {
+	mutating func addValue(_ value: Value, upToCapacity capacity: Int) {
 		precondition(capacity >= 0)
 
 		for buffer in replayBuffers {
@@ -359,7 +359,7 @@ private struct BufferState<Value, Error: ErrorType> {
 
 		let overflow = values.count - capacity
 		if overflow > 0 {
-			values.removeRange(0..<overflow)
+			values.removeSubrange(0..<overflow)
 		}
 	}
 }
@@ -369,14 +369,14 @@ public protocol SignalProducerType {
 	associatedtype Value
 	/// The type of error that can occur on the producer. If errors aren't
 	/// possible then `NoError` can be used.
-	associatedtype Error: ErrorType
+	associatedtype Error: Swift.Error
 
 	/// Extracts a signal producer from the receiver.
 	var producer: SignalProducer<Value, Error> { get }
 
 	/// Creates a Signal from the producer, passes it into the given closure,
 	/// then starts sending events on the Signal when the closure has returned.
-	func startWithSignal(@noescape setUp: (Signal<Value, Error>, Disposable) -> Void)
+	func startWithSignal(_ setUp: @escaping (Signal<Value, Error>, Disposable) -> Void)
 }
 
 extension SignalProducer: SignalProducerType {
@@ -395,7 +395,8 @@ extension SignalProducerType {
 	/// - returns: A `Disposable` which can be used to interrupt the work
 	///            associated with the signal and immediately send an
 	///            `Interrupted` event.
-	public func start(observer: Signal<Value, Error>.Observer = Signal<Value, Error>.Observer()) -> Disposable {
+	@discardableResult
+	public func start(_ observer: Signal<Value, Error>.Observer = Signal<Value, Error>.Observer()) -> Disposable {
 		var disposable: Disposable!
 
 		startWithSignal { signal, innerDisposable in
@@ -416,12 +417,14 @@ extension SignalProducerType {
 	/// - returns: A `Disposable` which can be used to interrupt the work
 	///            associated with the signal and immediately send an
 	///            `Interrupted` event.
-	public func start(observerAction: Signal<Value, Error>.Observer.Action) -> Disposable {
+	@discardableResult
+	public func start(_ observerAction: @escaping Signal<Value, Error>.Observer.Action) -> Disposable {
 		return start(Observer(observerAction))
 	}
 
-	@available(*, deprecated, message="This SignalProducer may emit errors which must be handled explicitly, or observed using startWithResult:")
-	public func startWithNext(next: Value -> Void) -> Disposable {
+	@available(*, deprecated, message: "This SignalProducer may emit errors which must be handled explicitly, or observed using startWithResult:")
+	@discardableResult
+	public func startWithNext(_ next: @escaping (Value) -> Void) -> Disposable {
 		return start(Observer(next: next))
 	}
 
@@ -436,11 +439,12 @@ extension SignalProducerType {
 	/// - returns:  A Disposable which can be used to interrupt the work
 	///             associated with the Signal, and prevent any future callbacks
 	///             from being invoked.
-	public func startWithResult(result: Result<Value, Error> -> Void) -> Disposable {
+	@discardableResult
+	public func startWithResult(_ result: @escaping (Result<Value, Error>) -> Void) -> Disposable {
 		return start(
 			Observer(
-				next: { result(.Success($0)) },
-				failed: { result(.Failure($0)) }
+				failed: { result(.failure($0)) },
+				next: { result(.success($0)) }
 			)
 		)
 	}
@@ -455,7 +459,8 @@ extension SignalProducerType {
 	///
 	/// - returns: A `Disposable` which can be used to interrupt the work
 	///            associated with the signal.
-	public func startWithCompleted(completed: () -> Void) -> Disposable {
+	@discardableResult
+	public func startWithCompleted(_ completed: @escaping () -> Void) -> Disposable {
 		return start(Observer(completed: completed))
 	}
 	
@@ -468,7 +473,8 @@ extension SignalProducerType {
 	///
 	/// - returns: A `Disposable` which can be used to interrupt the work
 	///            associated with the signal.
-	public func startWithFailed(failed: Error -> Void) -> Disposable {
+	@discardableResult
+	public func startWithFailed(_ failed: @escaping(Error) -> Void) -> Disposable {
 		return start(Observer(failed: failed))
 	}
 	
@@ -482,7 +488,8 @@ extension SignalProducerType {
 	///
 	/// - returns: A `Disposable` which can be used to interrupt the work
 	///            associated with the signal.
-	public func startWithInterrupted(interrupted: () -> Void) -> Disposable {
+	@discardableResult
+	public func startWithInterrupted(_ interrupted: @escaping () -> Void) -> Disposable {
 		return start(Observer(interrupted: interrupted))
 	}
 }
@@ -498,7 +505,8 @@ extension SignalProducerType where Error == NoError {
 	/// - returns: A `Disposable` which can be used to interrupt the work
 	///            associated with the Signal, and prevent any future callbacks
 	///            from being invoked.
-	public func startWithNext(next: Value -> Void) -> Disposable {
+	@discardableResult
+	public func startWithNext(_ next: @escaping (Value) -> Void) -> Disposable {
 		return start(Observer(next: next))
 	}
 }
@@ -515,8 +523,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func lift<U, F>(transform: Signal<Value, Error> -> Signal<U, F>) -> SignalProducer<U, F> {
+	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
 		return SignalProducer { observer, outerDisposable in
 			self.startWithSignal { signal, innerDisposable in
 				outerDisposable.addDisposable(innerDisposable)
@@ -540,8 +547,7 @@ extension SignalProducerType {
 	///   - transform: A binary operator to lift.
 	///
 	/// - returns: A binary operator that operates on two signal producers.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func lift<U, F, V, G>(transform: Signal<Value, Error> -> Signal<U, F> -> Signal<V, G>) -> SignalProducer<U, F> -> SignalProducer<V, G> {
+	public func lift<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return liftRight(transform)
 	}
 
@@ -549,8 +555,7 @@ extension SignalProducerType {
 	/// That is, the argument producer will be started before the receiver. When
 	/// both producers are synchronous this order can be important depending on
 	/// the operator to generate correct results.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	private func liftRight<U, F, V, G>(transform: Signal<Value, Error> -> Signal<U, F> -> Signal<V, G>) -> SignalProducer<U, F> -> SignalProducer<V, G> {
+	private func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
 			return SignalProducer { observer, outerDisposable in
 				self.startWithSignal { signal, disposable in
@@ -570,8 +575,7 @@ extension SignalProducerType {
 	/// That is, the receiver will be started before the argument producer. When
 	/// both producers are synchronous this order can be important depending on
 	/// the operator to generate correct results.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	private func liftLeft<U, F, V, G>(transform: Signal<Value, Error> -> Signal<U, F> -> Signal<V, G>) -> SignalProducer<U, F> -> SignalProducer<V, G> {
+	private func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { otherProducer in
 			return SignalProducer { observer, outerDisposable in
 				otherProducer.startWithSignal { otherSignal, otherDisposable in
@@ -600,8 +604,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A binary operator that works on `Signal` and returns
 	///            `SignalProducer`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func lift<U, F, V, G>(transform: Signal<Value, Error> -> Signal<U, F> -> Signal<V, G>) -> Signal<U, F> -> SignalProducer<V, G> {
+	public func lift<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (Signal<U, F>) -> SignalProducer<V, G> {
 		return { otherSignal in
 			return SignalProducer { observer, outerDisposable in
 				let (wrapperSignal, otherSignalObserver) = Signal<U, F>.pipe()
@@ -632,8 +635,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A signal producer that, when started, will send a mapped
 	///            value of `self.`
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func map<U>(transform: Value -> U) -> SignalProducer<U, Error> {
+	public func map<U>(_ transform: @escaping (Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.map(transform) }
 	}
 
@@ -644,8 +646,7 @@ extension SignalProducerType {
 	///                different error.
 	///
 	/// - returns: A producer that emits errors of new type.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func mapError<F>(transform: Error -> F) -> SignalProducer<Value, F> {
+	public func mapError<F>(_ transform: @escaping (Error) -> F) -> SignalProducer<Value, F> {
 		return lift { $0.mapError(transform) }
 	}
 
@@ -657,8 +658,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that, when started, will send only the values
 	///            passing the given predicate.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func filter(predicate: Value -> Bool) -> SignalProducer<Value, Error> {
+	public func filter(_ predicate: @escaping (Value) -> Bool) -> SignalProducer<Value, Error> {
 		return lift { $0.filter(predicate) }
 	}
 
@@ -671,8 +671,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that, when started, will yield the first `count`
 	///            values from `self`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func take(count: Int) -> SignalProducer<Value, Error> {
+	public func take(_ count: Int) -> SignalProducer<Value, Error> {
 		return lift { $0.take(count) }
 	}
 
@@ -683,7 +682,6 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that, when started, will yield an array of values
 	///            when `self` completes.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
 	public func collect() -> SignalProducer<[Value], Error> {
 		return lift { $0.collect() }
 	}
@@ -702,8 +700,7 @@ extension SignalProducerType {
 	/// - returns: A producer that, when started, collects at most `count`
 	///            values from `self`, forwards them as a single array and
 	///            completes.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func collect(count count: Int) -> SignalProducer<[Value], Error> {
+	public func collect(count: Int) -> SignalProducer<[Value], Error> {
 		precondition(count > 0)
 		return lift { $0.collect(count: count) }
 	}
@@ -748,8 +745,7 @@ extension SignalProducerType {
 	/// - returns: A producer that, when started, collects values passing the
 	///            predicate and, when `self` completes, forwards them as a
 	///            single array and complets.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func collect(predicate: (values: [Value]) -> Bool) -> SignalProducer<[Value], Error> {
+	public func collect(_ predicate: @escaping (_ values: [Value]) -> Bool) -> SignalProducer<[Value], Error> {
 		return lift { $0.collect(predicate) }
 	}
 
@@ -792,8 +788,7 @@ extension SignalProducerType {
 	/// - returns: A signal that will yield an array of values based on a
 	///            predicate which matches the values collected and the next
 	///            value.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func collect(predicate: (values: [Value], next: Value) -> Bool) -> SignalProducer<[Value], Error> {
+	public func collect(_ predicate: @escaping (_ values: [Value], _ next: Value) -> Bool) -> SignalProducer<[Value], Error> {
 		return lift { $0.collect(predicate) }
 	}
 
@@ -805,8 +800,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that, when started, will yield `self` values on
 	///            provided scheduler.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func observeOn(scheduler: SchedulerType) -> SignalProducer<Value, Error> {
+	public func observeOn(_ scheduler: SchedulerType) -> SignalProducer<Value, Error> {
 		return lift { $0.observeOn(scheduler) }
 	}
 
@@ -824,8 +818,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that, when started, will yield a tuple containing
 	///            values of `self` and given producer.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func combineLatestWith<U>(otherProducer: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
+	public func combineLatestWith<U>(_ otherProducer: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
 		// This should be the implementation of this method:
 		// return liftRight(Signal.combineLatestWith)(otherProducer)
 		//
@@ -861,8 +854,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that, when started, will yield a tuple containing
 	///            values of `self` and given signal.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func combineLatestWith<U>(otherSignal: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
+	public func combineLatestWith<U>(_ otherSignal: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
 		return lift(Signal.combineLatestWith)(otherSignal)
 	}
 
@@ -878,8 +870,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that, when started, will delay `Next` and
 	///            `Completed` events and will yield them on given scheduler.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func delay(interval: NSTimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
+	public func delay(_ interval: TimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
 		return lift { $0.delay(interval, onScheduler: scheduler) }
 	}
 
@@ -890,8 +881,7 @@ extension SignalProducerType {
 	///
 	/// - returns:  A producer that, when started, will skip the first `count`
 	///             values, then forward everything afterward.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func skip(count: Int) -> SignalProducer<Value, Error> {
+	public func skip(_ count: Int) -> SignalProducer<Value, Error> {
 		return lift { $0.skip(count) }
 	}
 
@@ -906,7 +896,6 @@ extension SignalProducerType {
 	///         send the `Event` itself and then interrupt.
 	///
 	/// - returns: A producer that sends events as its values.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
 	public func materialize() -> SignalProducer<Event<Value, Error>, NoError> {
 		return lift { $0.materialize() }
 	}
@@ -925,8 +914,7 @@ extension SignalProducerType {
 	///            sampled (possibly multiple times) by `sampler`, then complete
 	///            once both input producers have completed, or interrupt if
 	///            either input producer is interrupted.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func sampleWith<T>(sampler: SignalProducer<T, NoError>) -> SignalProducer<(Value, T), Error> {
+	public func sampleWith<T>(_ sampler: SignalProducer<T, NoError>) -> SignalProducer<(Value, T), Error> {
 		return liftLeft(Signal.sampleWith)(sampler)
 	}
 	
@@ -945,8 +933,7 @@ extension SignalProducerType {
 	///            `sampler`, then complete once both input producers have
 	///            completed, or interrupt if either input producer is
 	///            interrupted.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func sampleWith<T>(sampler: Signal<T, NoError>) -> SignalProducer<(Value, T), Error> {
+	public func sampleWith<T>(_ sampler: Signal<T, NoError>) -> SignalProducer<(Value, T), Error> {
 		return lift(Signal.sampleWith)(sampler)
 	}
 
@@ -964,8 +951,7 @@ extension SignalProducerType {
 	///            sampled (possibly multiple times) by `sampler`, then complete
 	///            once both input producers have completed, or interrupt if
 	///            either input producer is interrupted.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func sampleOn(sampler: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
+	public func sampleOn(_ sampler: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
 		return liftLeft(Signal.sampleOn)(sampler)
 	}
 
@@ -983,8 +969,7 @@ extension SignalProducerType {
 	///            (possibly multiple times) by `sampler`, then complete once 
 	///            both inputs have completed, or interrupt if either input is
 	///            interrupted.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func sampleOn(sampler: Signal<(), NoError>) -> SignalProducer<Value, Error> {
+	public func sampleOn(_ sampler: Signal<(), NoError>) -> SignalProducer<Value, Error> {
 		return lift(Signal.sampleOn)(sampler)
 	}
 
@@ -997,8 +982,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that will deliver events until `trigger` sends
 	///            `Next` or `Completed` events.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func takeUntil(trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
+	public func takeUntil(_ trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
 		// This should be the implementation of this method:
 		// return liftRight(Signal.takeUntil)(trigger)
 		//
@@ -1031,8 +1015,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that will deliver events until `trigger` sends
 	///            `Next` or `Completed` events.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func takeUntil(trigger: Signal<(), NoError>) -> SignalProducer<Value, Error> {
+	public func takeUntil(_ trigger: Signal<(), NoError>) -> SignalProducer<Value, Error> {
 		return lift(Signal.takeUntil)(trigger)
 	}
 
@@ -1046,8 +1029,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that will deliver events once the `trigger` sends
 	///            `Next` or `Completed` events.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func skipUntil(trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
+	public func skipUntil(_ trigger: SignalProducer<(), NoError>) -> SignalProducer<Value, Error> {
 		return liftRight(Signal.skipUntil)(trigger)
 	}
 	
@@ -1061,8 +1043,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that will deliver events once the `trigger` sends
 	///            `Next` or `Completed` events.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func skipUntil(trigger: Signal<(), NoError>) -> SignalProducer<Value, Error> {
+	public func skipUntil(_ trigger: Signal<(), NoError>) -> SignalProducer<Value, Error> {
 		return lift(Signal.skipUntil)(trigger)
 	}
 	
@@ -1077,8 +1058,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends tuples that contain previous and
 	///            current sent values of `self`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func combinePrevious(initial: Value) -> SignalProducer<(Value, Value), Error> {
+	public func combinePrevious(_ initial: Value) -> SignalProducer<(Value, Value), Error> {
 		return lift { $0.combinePrevious(initial) }
 	}
 
@@ -1091,8 +1071,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends accumulated value after `self`
 	///             completes.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func reduce<U>(initial: U, _ combine: (U, Value) -> U) -> SignalProducer<U, Error> {
+	public func reduce<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.reduce(initial, combine) }
 	}
 
@@ -1110,8 +1089,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends accumulated value each time `self`
 	///            emits own value.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func scan<U>(initial: U, _ combine: (U, Value) -> U) -> SignalProducer<U, Error> {
+	public func scan<U>(_ initial: U, _ combine: @escaping (U, Value) -> U) -> SignalProducer<U, Error> {
 		return lift { $0.scan(initial, combine) }
 	}
 
@@ -1121,8 +1099,7 @@ extension SignalProducerType {
 	/// - note: The first value is always forwarded.
 	///
 	/// - returns: A producer that does not send two equal values sequentially.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func skipRepeats(isRepeat: (Value, Value) -> Bool) -> SignalProducer<Value, Error> {
+	public func skipRepeats(_ isRepeat: @escaping (Value, Value) -> Bool) -> SignalProducer<Value, Error> {
 		return lift { $0.skipRepeats(isRepeat) }
 	}
 
@@ -1134,8 +1111,7 @@ extension SignalProducerType {
 	///                should still not forward that value to a `producer`.
 	///
 	/// - returns: A producer that sends only forwarded values from `self`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func skipWhile(predicate: Value -> Bool) -> SignalProducer<Value, Error> {
+	public func skipWhile(_ predicate: @escaping (Value) -> Bool) -> SignalProducer<Value, Error> {
 		return lift { $0.skipWhile(predicate) }
 	}
 
@@ -1151,8 +1127,7 @@ extension SignalProducerType {
 	///            event and switch to passing through events from `replacement` 
 	///            instead, regardless of whether `self` has sent events
 	///            already.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func takeUntilReplacement(replacement: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
+	public func takeUntilReplacement(_ replacement: SignalProducer<Value, Error>) -> SignalProducer<Value, Error> {
 		return liftRight(Signal.takeUntilReplacement)(replacement)
 	}
 
@@ -1168,8 +1143,7 @@ extension SignalProducerType {
 	///            event and switch to passing through events from `replacement`
 	///            instead, regardless of whether `self` has sent events
 	///            already.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func takeUntilReplacement(replacement: Signal<Value, Error>) -> SignalProducer<Value, Error> {
+	public func takeUntilReplacement(_ replacement: Signal<Value, Error>) -> SignalProducer<Value, Error> {
 		return lift(Signal.takeUntilReplacement)(replacement)
 	}
 
@@ -1181,8 +1155,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that receives up to `count` values from `self`
 	///            after `self` completes.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func takeLast(count: Int) -> SignalProducer<Value, Error> {
+	public func takeLast(_ count: Int) -> SignalProducer<Value, Error> {
 		return lift { $0.takeLast(count) }
 	}
 
@@ -1196,8 +1169,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends events until the values sent by `self`
 	///            pass the given `predicate`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func takeWhile(predicate: Value -> Bool) -> SignalProducer<Value, Error> {
+	public func takeWhile(_ predicate: @escaping (Value) -> Bool) -> SignalProducer<Value, Error> {
 		return lift { $0.takeWhile(predicate) }
 	}
 
@@ -1208,8 +1180,7 @@ extension SignalProducerType {
 	///   - otherProducer: A producer to zip values with.
 	///
 	/// - returns: A producer that sends tuples of `self` and `otherProducer`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func zipWith<U>(otherProducer: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
+	public func zipWith<U>(_ otherProducer: SignalProducer<U, Error>) -> SignalProducer<(Value, U), Error> {
 		return liftRight(Signal.zipWith)(otherProducer)
 	}
 
@@ -1220,8 +1191,7 @@ extension SignalProducerType {
 	///   - otherSignal: A signal to zip values with.
 	///
 	/// - returns: A producer that sends tuples of `self` and `otherSignal`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func zipWith<U>(otherSignal: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
+	public func zipWith<U>(_ otherSignal: Signal<U, Error>) -> SignalProducer<(Value, U), Error> {
 		return lift(Signal.zipWith)(otherSignal)
 	}
 
@@ -1234,8 +1204,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that receives `Success`ful `Result` as `Next`
 	///            event and `Failure` as `Failed` event.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func attempt(operation: Value -> Result<(), Error>) -> SignalProducer<Value, Error> {
+	public func attempt(_ operation: @escaping (Value) -> Result<(), Error>) -> SignalProducer<Value, Error> {
 		return lift { $0.attempt(operation) }
 	}
 
@@ -1248,8 +1217,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends mapped values from `self` if returned
 	///            `Result` is `Success`ful, `Failed` events otherwise.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func attemptMap<U>(operation: Value -> Result<U, Error>) -> SignalProducer<U, Error> {
+	public func attemptMap<U>(_ operation: @escaping (Value) -> Result<U, Error>) -> SignalProducer<U, Error> {
 		return lift { $0.attemptMap(operation) }
 	}
 
@@ -1269,8 +1237,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends values at least `interval` seconds
 	///            appart on a given scheduler.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func throttle(interval: NSTimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
+	public func throttle(_ interval: TimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
 		return lift { $0.throttle(interval, onScheduler: scheduler) }
 	}
 
@@ -1291,8 +1258,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends values that are sent from `self` at
 	///            least `interval` seconds apart.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func debounce(interval: NSTimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
+	public func debounce(_ interval: TimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
 		return lift { $0.debounce(interval, onScheduler: scheduler) }
 	}
 
@@ -1312,8 +1278,7 @@ extension SignalProducerType {
 	/// - returns: A producer that sends events for at most `interval` seconds,
 	///            then, if not `Completed` - sends `error` with `Failed` event
 	///            on `scheduler`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func timeoutWithError(error: Error, afterInterval interval: NSTimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
+	public func timeoutWithError(_ error: Error, afterInterval interval: TimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Value, Error> {
 		return lift { $0.timeoutWithError(error, afterInterval: interval, onScheduler: scheduler) }
 	}
 }
@@ -1323,7 +1288,6 @@ extension SignalProducerType where Value: OptionalType {
 	/// values are dropped.
 	///
 	/// - returns: A producer that sends only non-nil values.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
 	public func ignoreNil() -> SignalProducer<Value.Wrapped, Error> {
 		return lift { $0.ignoreNil() }
 	}
@@ -1334,7 +1298,6 @@ extension SignalProducerType where Value: EventType, Error == NoError {
 	/// _values_ into a producer of those events themselves.
 	///
 	/// - returns: A producer that sends values carried by `self` events.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
 	public func dematerialize() -> SignalProducer<Value.Value, Value.Error> {
 		return lift { $0.dematerialize() }
 	}
@@ -1352,9 +1315,8 @@ extension SignalProducerType where Error == NoError {
 	///   - _ An `ErrorType`.
 	///
 	/// - returns: A producer that has an instantiatable `ErrorType`.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func promoteErrors<F: ErrorType>(_: F.Type) -> SignalProducer<Value, F> {
-		return lift { $0.promoteErrors(F) }
+	public func promoteErrors<F: Swift.Error>(_: F.Type) -> SignalProducer<Value, F> {
+		return lift { $0.promoteErrors(F.self) }
 	}
 }
 
@@ -1365,7 +1327,6 @@ extension SignalProducerType where Value: Equatable {
 	/// - note: The first value is always forwarded.
 	///
 	/// - returns: A producer that does not send two equal values sequentially.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
 	public func skipRepeats() -> SignalProducer<Value, Error> {
 		return lift { $0.skipRepeats() }
 	}
@@ -1383,8 +1344,7 @@ extension SignalProducerType {
 	///                value.
 	///
 	/// - returns: A producer that sends unique values during its lifetime.
-	@warn_unused_result(message="Did you forget to call `observe` on the signal?")
-	public func uniqueValues<Identity: Hashable>(transform: Value -> Identity) -> SignalProducer<Value, Error> {
+	public func uniqueValues<Identity: Hashable>(_ transform: @escaping (Value) -> Identity) -> SignalProducer<Value, Error> {
 		return lift { $0.uniqueValues(transform) }
 	}
 }
@@ -1398,7 +1358,6 @@ extension SignalProducerType where Value: Hashable {
 	///         value can help you reduce the memory footprint.
 	///
 	/// - returns: A producer that sends unique values during its lifetime.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
 	public func uniqueValues() -> SignalProducer<Value, Error> {
 		return lift { $0.uniqueValues() }
 	}
@@ -1417,8 +1376,7 @@ extension SignalProducerType where Value: Hashable {
 ///   - scheduler: A scheduler to deliver events on.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func timer(interval: NSTimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<NSDate, NoError> {
+public func timer(_ interval: TimeInterval, onScheduler scheduler: DateSchedulerType) -> SignalProducer<Date, NoError> {
 	// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
 	// at least 10% of the timer interval.
 	return timer(interval, onScheduler: scheduler, withLeeway: interval * 0.1)
@@ -1441,13 +1399,12 @@ public func timer(interval: NSTimeInterval, onScheduler scheduler: DateScheduler
 ///             recommends a leeway of at least 10% of the timer interval.
 ///
 /// - returns: A producer that sends `NSDate` values every `interval` seconds.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func timer(interval: NSTimeInterval, onScheduler scheduler: DateSchedulerType, withLeeway leeway: NSTimeInterval) -> SignalProducer<NSDate, NoError> {
+public func timer(_ interval: TimeInterval, onScheduler scheduler: DateSchedulerType, withLeeway leeway: TimeInterval) -> SignalProducer<Date, NoError> {
 	precondition(interval >= 0)
 	precondition(leeway >= 0)
 
 	return SignalProducer { observer, compositeDisposable in
-		compositeDisposable += scheduler.scheduleAfter(scheduler.currentDate.dateByAddingTimeInterval(interval), repeatingEvery: interval, withLeeway: leeway) {
+		compositeDisposable += scheduler.scheduleAfter(scheduler.currentDate.addingTimeInterval(interval), repeatingEvery: interval, withLeeway: leeway) {
 			observer.sendNext(scheduler.currentDate)
 		}
 	}
@@ -1469,8 +1426,7 @@ extension SignalProducerType {
 	///   - next: A closure that accepts a value from `Next` event.
 	///
 	/// - returns: A producer with attached side-effects for given event cases.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func on(started started: (() -> Void)? = nil, event: (Event<Value, Error> -> Void)? = nil, failed: (Error -> Void)? = nil, completed: (() -> Void)? = nil, interrupted: (() -> Void)? = nil, terminated: (() -> Void)? = nil, disposed: (() -> Void)? = nil, next: (Value -> Void)? = nil) -> SignalProducer<Value, Error> {
+	public func on(started: (() -> Void)? = nil, event: ((Event<Value, Error>) -> Void)? = nil, failed: ((Error) -> Void)? = nil, completed: (() -> Void)? = nil, interrupted: (() -> Void)? = nil, terminated: (() -> Void)? = nil, disposed: (() -> Void)? = nil, next: ((Value) -> Void)? = nil) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, compositeDisposable in
 			started?()
 			self.startWithSignal { signal, disposable in
@@ -1503,8 +1459,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that will deliver events on given `scheduler` when
 	///            started.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func startOn(scheduler: SchedulerType) -> SignalProducer<Value, Error> {
+	public func startOn(_ scheduler: SchedulerType) -> SignalProducer<Value, Error> {
 		return SignalProducer { observer, compositeDisposable in
 			compositeDisposable += scheduler.schedule {
 				self.startWithSignal { signal, signalDisposable in
@@ -1518,15 +1473,13 @@ extension SignalProducerType {
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(A, B), Error> {
+public func combineLatest<A, B, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(A, B), Error> {
 	return a.combineLatestWith(b)
 }
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(A, B, C), Error> {
+public func combineLatest<A, B, C, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(A, B, C), Error> {
 	return combineLatest(a, b)
 		.combineLatestWith(c)
 		.map(repack)
@@ -1534,8 +1487,7 @@ public func combineLatest<A, B, C, Error>(a: SignalProducer<A, Error>, _ b: Sign
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, D, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(A, B, C, D), Error> {
+public func combineLatest<A, B, C, D, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(A, B, C, D), Error> {
 	return combineLatest(a, b, c)
 		.combineLatestWith(d)
 		.map(repack)
@@ -1543,8 +1495,7 @@ public func combineLatest<A, B, C, D, Error>(a: SignalProducer<A, Error>, _ b: S
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, D, E, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(A, B, C, D, E), Error> {
+public func combineLatest<A, B, C, D, E, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(A, B, C, D, E), Error> {
 	return combineLatest(a, b, c, d)
 		.combineLatestWith(e)
 		.map(repack)
@@ -1552,8 +1503,7 @@ public func combineLatest<A, B, C, D, E, Error>(a: SignalProducer<A, Error>, _ b
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, D, E, F, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(A, B, C, D, E, F), Error> {
+public func combineLatest<A, B, C, D, E, F, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(A, B, C, D, E, F), Error> {
 	return combineLatest(a, b, c, d, e)
 		.combineLatestWith(f)
 		.map(repack)
@@ -1561,8 +1511,7 @@ public func combineLatest<A, B, C, D, E, F, Error>(a: SignalProducer<A, Error>, 
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, D, E, F, G, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(A, B, C, D, E, F, G), Error> {
+public func combineLatest<A, B, C, D, E, F, G, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(A, B, C, D, E, F, G), Error> {
 	return combineLatest(a, b, c, d, e, f)
 		.combineLatestWith(g)
 		.map(repack)
@@ -1570,8 +1519,7 @@ public func combineLatest<A, B, C, D, E, F, G, Error>(a: SignalProducer<A, Error
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, D, E, F, G, H, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H), Error> {
+public func combineLatest<A, B, C, D, E, F, G, H, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H), Error> {
 	return combineLatest(a, b, c, d, e, f, g)
 		.combineLatestWith(h)
 		.map(repack)
@@ -1579,8 +1527,7 @@ public func combineLatest<A, B, C, D, E, F, G, H, Error>(a: SignalProducer<A, Er
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, D, E, F, G, H, I, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I), Error> {
+public func combineLatest<A, B, C, D, E, F, G, H, I, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I), Error> {
 	return combineLatest(a, b, c, d, e, f, g, h)
 		.combineLatestWith(i)
 		.map(repack)
@@ -1588,8 +1535,7 @@ public func combineLatest<A, B, C, D, E, F, G, H, I, Error>(a: SignalProducer<A,
 
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<A, B, C, D, E, F, G, H, I, J, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I, J), Error> {
+public func combineLatest<A, B, C, D, E, F, G, H, I, J, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I, J), Error> {
 	return combineLatest(a, b, c, d, e, f, g, h, i)
 		.combineLatestWith(j)
 		.map(repack)
@@ -1598,12 +1544,15 @@ public func combineLatest<A, B, C, D, E, F, G, H, I, J, Error>(a: SignalProducer
 /// Combines the values of all the given producers, in the manner described by
 /// `combineLatestWith`. Will return an empty `SignalProducer` if the sequence
 /// is empty.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func combineLatest<S: SequenceType, Value, Error where S.Generator.Element == SignalProducer<Value, Error>>(producers: S) -> SignalProducer<[Value], Error> {
-	var generator = producers.generate()
-	if let first = generator.next() {
+public func combineLatest<S: Sequence, Value, Error>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+	var iterator = producers.makeIterator()
+	if let first = iterator.next() {
 		let initial = first.map { [$0] }
-		return GeneratorSequence(generator).reduce(initial) { producer, next in
+		var remainder: [S.Iterator.Element] = []
+		while let next = iterator.next() {
+			remainder.append(next)
+		}
+		return remainder.reduce(initial) { producer, next in
 			producer.combineLatestWith(next).map { $0.0 + [$0.1] }
 		}
 	}
@@ -1613,15 +1562,13 @@ public func combineLatest<S: SequenceType, Value, Error where S.Generator.Elemen
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(A, B), Error> {
+public func zip<A, B, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>) -> SignalProducer<(A, B), Error> {
 	return a.zipWith(b)
 }
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(A, B, C), Error> {
+public func zip<A, B, C, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>) -> SignalProducer<(A, B, C), Error> {
 	return zip(a, b)
 		.zipWith(c)
 		.map(repack)
@@ -1629,8 +1576,7 @@ public func zip<A, B, C, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, D, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(A, B, C, D), Error> {
+public func zip<A, B, C, D, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>) -> SignalProducer<(A, B, C, D), Error> {
 	return zip(a, b, c)
 		.zipWith(d)
 		.map(repack)
@@ -1638,8 +1584,7 @@ public func zip<A, B, C, D, Error>(a: SignalProducer<A, Error>, _ b: SignalProdu
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, D, E, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(A, B, C, D, E), Error> {
+public func zip<A, B, C, D, E, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>) -> SignalProducer<(A, B, C, D, E), Error> {
 	return zip(a, b, c, d)
 		.zipWith(e)
 		.map(repack)
@@ -1647,8 +1592,7 @@ public func zip<A, B, C, D, E, Error>(a: SignalProducer<A, Error>, _ b: SignalPr
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, D, E, F, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(A, B, C, D, E, F), Error> {
+public func zip<A, B, C, D, E, F, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>) -> SignalProducer<(A, B, C, D, E, F), Error> {
 	return zip(a, b, c, d, e)
 		.zipWith(f)
 		.map(repack)
@@ -1656,8 +1600,7 @@ public func zip<A, B, C, D, E, F, Error>(a: SignalProducer<A, Error>, _ b: Signa
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, D, E, F, G, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(A, B, C, D, E, F, G), Error> {
+public func zip<A, B, C, D, E, F, G, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>) -> SignalProducer<(A, B, C, D, E, F, G), Error> {
 	return zip(a, b, c, d, e, f)
 		.zipWith(g)
 		.map(repack)
@@ -1665,8 +1608,7 @@ public func zip<A, B, C, D, E, F, G, Error>(a: SignalProducer<A, Error>, _ b: Si
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, D, E, F, G, H, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H), Error> {
+public func zip<A, B, C, D, E, F, G, H, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H), Error> {
 	return zip(a, b, c, d, e, f, g)
 		.zipWith(h)
 		.map(repack)
@@ -1674,8 +1616,7 @@ public func zip<A, B, C, D, E, F, G, H, Error>(a: SignalProducer<A, Error>, _ b:
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, D, E, F, G, H, I, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I), Error> {
+public func zip<A, B, C, D, E, F, G, H, I, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I), Error> {
 	return zip(a, b, c, d, e, f, g, h)
 		.zipWith(i)
 		.map(repack)
@@ -1683,8 +1624,7 @@ public func zip<A, B, C, D, E, F, G, H, I, Error>(a: SignalProducer<A, Error>, _
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<A, B, C, D, E, F, G, H, I, J, Error>(a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I, J), Error> {
+public func zip<A, B, C, D, E, F, G, H, I, J, Error>(_ a: SignalProducer<A, Error>, _ b: SignalProducer<B, Error>, _ c: SignalProducer<C, Error>, _ d: SignalProducer<D, Error>, _ e: SignalProducer<E, Error>, _ f: SignalProducer<F, Error>, _ g: SignalProducer<G, Error>, _ h: SignalProducer<H, Error>, _ i: SignalProducer<I, Error>, _ j: SignalProducer<J, Error>) -> SignalProducer<(A, B, C, D, E, F, G, H, I, J), Error> {
 	return zip(a, b, c, d, e, f, g, h, i)
 		.zipWith(j)
 		.map(repack)
@@ -1692,16 +1632,19 @@ public func zip<A, B, C, D, E, F, G, H, I, J, Error>(a: SignalProducer<A, Error>
 
 /// Zips the values of all the given producers, in the manner described by
 /// `zipWith`. Will return an empty `SignalProducer` if the sequence is empty.
-@warn_unused_result(message="Did you forget to call `start` on the producer?")
-public func zip<S: SequenceType, Value, Error where S.Generator.Element == SignalProducer<Value, Error>>(producers: S) -> SignalProducer<[Value], Error> {
-	var generator = producers.generate()
-	if let first = generator.next() {
+public func zip<S: Sequence, Value, Error>(_ producers: S) -> SignalProducer<[Value], Error> where S.Iterator.Element == SignalProducer<Value, Error> {
+	var iterator = producers.makeIterator()
+	if let first = iterator.next() {
 		let initial = first.map { [$0] }
-		return GeneratorSequence(generator).reduce(initial) { producer, next in
+		var remainder: [S.Iterator.Element] = []
+		while let next = iterator.next() {
+			remainder.append(next)
+		}
+		return remainder.reduce(initial) { producer, next in
 			producer.zipWith(next).map { $0.0 + [$0.1] }
 		}
 	}
-
+	
 	return .empty
 }
 
@@ -1720,8 +1663,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A signal producer start sequentially starts `self` after
 	///            previously started producer completes.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func times(count: Int) -> SignalProducer<Value, Error> {
+	public func times(_ count: Int) -> SignalProducer<Value, Error> {
 		precondition(count >= 0)
 
 		if count == 0 {
@@ -1734,12 +1676,12 @@ extension SignalProducerType {
 			let serialDisposable = SerialDisposable()
 			disposable.addDisposable(serialDisposable)
 
-			func iterate(current: Int) {
+			func iterate(_ current: Int) {
 				self.startWithSignal { signal, signalDisposable in
 					serialDisposable.innerDisposable = signalDisposable
 
 					signal.observe { event in
-						if case .Completed = event {
+						if case .completed = event {
 							let remainingTimes = current - 1
 							if remainingTimes > 0 {
 								iterate(remainingTimes)
@@ -1765,8 +1707,7 @@ extension SignalProducerType {
 	///   - count: Number of retries.
 	///
 	/// - returns: A signal producer that restarts up to `count` times.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func retry(count: Int) -> SignalProducer<Value, Error> {
+	public func retry(_ count: Int) -> SignalProducer<Value, Error> {
 		precondition(count >= 0)
 
 		if count == 0 {
@@ -1790,21 +1731,20 @@ extension SignalProducerType {
 	///
 	/// - returns: A producer that sends events from `self` and then from
 	///            `replacement` when `self` completes.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func then<U>(replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
+	public func then<U>(_ replacement: SignalProducer<U, Error>) -> SignalProducer<U, Error> {
 		return SignalProducer<U, Error> { observer, observerDisposable in
 			self.startWithSignal { signal, signalDisposable in
 				observerDisposable.addDisposable(signalDisposable)
 
 				signal.observe { event in
 					switch event {
-					case let .Failed(error):
+					case let .failed(error):
 						observer.sendFailed(error)
-					case .Completed:
+					case .completed:
 						observerDisposable += replacement.start(observer)
-					case .Interrupted:
+					case .interrupted:
 						observer.sendInterrupted()
-					case .Next:
+					case .next:
 						break
 					}
 				}
@@ -1820,7 +1760,6 @@ extension SignalProducerType {
 	///
 	/// - returns: Result when single `Next` or `Failed` event is received.
 	///            `nil` when no events are received.
-	@warn_unused_result(message="Did you forget to check the result?")
 	public func first() -> Result<Value, Error>? {
 		return take(1).single()
 	}
@@ -1834,29 +1773,28 @@ extension SignalProducerType {
 	///
 	/// - returns: Result when single `Next` or `Failed` event is received. 
 	///            `nil` when 0 or more than 1 events are received.
-	@warn_unused_result(message="Did you forget to check the result?")
 	public func single() -> Result<Value, Error>? {
-		let semaphore = dispatch_semaphore_create(0)
+		let semaphore = DispatchSemaphore(value: 0)
 		var result: Result<Value, Error>?
 
 		take(2).start { event in
 			switch event {
-			case let .Next(value):
+			case let .next(value):
 				if result != nil {
 					// Move into failure state after recieving another value.
 					result = nil
 					return
 				}
-				result = .Success(value)
-			case let .Failed(error):
-				result = .Failure(error)
-				dispatch_semaphore_signal(semaphore)
-			case .Completed, .Interrupted:
-				dispatch_semaphore_signal(semaphore)
+				result = .success(value)
+			case let .failed(error):
+				result = .failure(error)
+				semaphore.signal()
+			case .completed, .interrupted:
+				semaphore.signal()
 			}
 		}
 		
-		dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER)
+		semaphore.wait()
 		return result
 	}
 
@@ -1868,7 +1806,6 @@ extension SignalProducerType {
 	///
 	/// - returns: Result when single `Next` or `Failed` event is received.
 	///            `nil` when no events are received.
-	@warn_unused_result(message="Did you forget to check the result?")
 	public func last() -> Result<Value, Error>? {
 		return takeLast(1).single()
 	}
@@ -1880,9 +1817,8 @@ extension SignalProducerType {
 	///
 	/// - returns: Result when single `Completion` or `Failed` event is 
 	///            received.
-	@warn_unused_result(message="Did you forget to check the result?")
 	public func wait() -> Result<(), Error> {
-		return then(SignalProducer<(), Error>(value: ())).last() ?? .Success(())
+		return then(SignalProducer<(), Error>(value: ())).last() ?? .success(())
 	}
 
 	/// Creates a new `SignalProducer` that will multicast values emitted by
@@ -1915,8 +1851,7 @@ extension SignalProducerType {
 	///
 	/// - returns: A caching producer that will hold up to last `capacity`
 	///            values.
-	@warn_unused_result(message="Did you forget to call `start` on the producer?")
-	public func replayLazily(capacity: Int) -> SignalProducer<Value, Error> {
+	public func replayLazily(_ capacity: Int) -> SignalProducer<Value, Error> {
 		precondition(capacity >= 0, "Invalid capacity: \(capacity)")
 
 		var producer: SignalProducer<Value, Error>?
@@ -1938,7 +1873,7 @@ extension SignalProducerType {
 			let shouldStartUnderlyingProducer: Bool
 
 			lock.lock()
-			if let producer = producer, producerObserver = producerObserver {
+			if let producer = producer, let producerObserver = producerObserver {
 				(initializedProducer, initializedObserver) = (producer, producerObserver)
 				shouldStartUnderlyingProducer = false
 			} else {

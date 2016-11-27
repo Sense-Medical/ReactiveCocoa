@@ -19,9 +19,9 @@ public protocol PropertyType {
 /// A read-only property that allows observation of its changes.
 public struct AnyProperty<Value>: PropertyType {
 
-	private let _value: () -> Value
-	private let _producer: () -> SignalProducer<Value, NoError>
-	private let _signal: () -> Signal<Value, NoError>
+	fileprivate let _value: () -> Value
+	fileprivate let _producer: () -> SignalProducer<Value, NoError>
+	fileprivate let _signal: () -> Signal<Value, NoError>
 
 
 	public var value: Value {
@@ -40,7 +40,7 @@ public struct AnyProperty<Value>: PropertyType {
 	///
 	/// - parameters:
 	///   - property: A property to read as this property's own value.
-	public init<P: PropertyType where P.Value == Value>(_ property: P) {
+	public init<P: PropertyType>(_ property: P) where P.Value == Value {
 		_value = { property.value }
 		_producer = { property.producer }
 		_signal = { property.signal }
@@ -81,9 +81,12 @@ extension PropertyType {
 	///
 	/// - returns: A new instance of `AnyProperty` who's holds a mapped value
 	///            from `self`.
-	public func map<U>(transform: Value -> U) -> AnyProperty<U> {
+	public func map<U>(_ transform: @escaping (Value) -> U) -> AnyProperty<U> {
 		let mappedProducer = SignalProducer<U, NoError> { observer, disposable in
-			disposable += ActionDisposable { self }
+			disposable += ActionDisposable { _ in
+				_ = self
+				return
+			}
 			disposable += self.producer.map(transform).start(observer)
 		}
 		return AnyProperty(initialValue: transform(value), producer: mappedProducer)
@@ -121,19 +124,19 @@ public protocol MutablePropertyType: class, PropertyType {
 /// Instances of this class are thread-safe.
 public final class MutableProperty<Value>: MutablePropertyType {
 
-	private let observer: Signal<Value, NoError>.Observer
+	fileprivate let observer: Signal<Value, NoError>.Observer
 
 	/// Need a recursive lock around `value` to allow recursive access to
 	/// `value`. Note that recursive sets will still deadlock because the
 	/// underlying producer prevents sending recursive events.
-	private let lock: NSRecursiveLock
+	fileprivate let lock: NSRecursiveLock
 
 	/// The getter of the underlying storage, which may outlive the property
 	/// if a returned producer is being retained.
-	private let getter: () -> Value
+	fileprivate let getter: () -> Value
 
 	/// The setter of the underlying storage.
-	private let setter: Value -> Void
+	fileprivate let setter: (Value) -> Void
 
 	/// The current value of the property.
 	///
@@ -145,7 +148,7 @@ public final class MutableProperty<Value>: MutablePropertyType {
 		}
 
 		set {
-			swap(newValue)
+			_ = swap(newValue)
 		}
 	}
 
@@ -194,7 +197,7 @@ public final class MutableProperty<Value>: MutablePropertyType {
 	///   - newValue: New property value.
 	///
 	/// - returns: The previous property value.
-	public func swap(newValue: Value) -> Value {
+	public func swap(_ newValue: Value) -> Value {
 		return modify { _ in newValue }
 	}
 
@@ -204,7 +207,7 @@ public final class MutableProperty<Value>: MutablePropertyType {
 	///   - action: A closure that accepts old property value and returns a new
 	///             property value.
 	/// - returns: The previous property value.
-	public func modify(@noescape action: (Value) throws -> Value) rethrows -> Value {
+	public func modify(action: (Value) throws -> Value) rethrows -> Value {
 		return try withValue { value in
 			let newValue = try action(value)
 			setter(newValue)
@@ -220,7 +223,7 @@ public final class MutableProperty<Value>: MutablePropertyType {
 	///   - action: A closure that accepts current property value.
 	///
 	/// - returns: the result of the action.
-	public func withValue<Result>(@noescape action: (Value) throws -> Result) rethrows -> Result {
+	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
 		lock.lock()
 		defer { lock.unlock() }
 
@@ -232,12 +235,14 @@ public final class MutableProperty<Value>: MutablePropertyType {
 	}
 }
 
-infix operator <~ {
-	associativity right
-
+precedencegroup BindingPrecedence {
+	associativity: right
+	
 	// Binds tighter than assignment but looser than everything else
-	precedence 93
+	higherThan: AssignmentPrecedence
 }
+
+infix operator <~ : BindingPrecedence
 
 /// Binds a signal to a property, updating the property's value to the latest
 /// value sent by the signal.
@@ -267,6 +272,7 @@ infix operator <~ {
 ///
 /// - returns: A disposable that can be used to terminate binding before the
 ///            deinitialization of property or signal's `Completed` event.
+@discardableResult
 public func <~ <P: MutablePropertyType>(property: P, signal: Signal<P.Value, NoError>) -> Disposable {
 	let disposable = CompositeDisposable()
 	disposable += property.producer.startWithCompleted {
@@ -275,11 +281,11 @@ public func <~ <P: MutablePropertyType>(property: P, signal: Signal<P.Value, NoE
 
 	disposable += signal.observe { [weak property] event in
 		switch event {
-		case let .Next(value):
+		case let .next(value):
 			property?.value = value
-		case .Completed:
+		case .completed:
 			disposable.dispose()
-		case .Failed, .Interrupted:
+		case .failed, .interrupted:
 			break
 		}
 	}
@@ -319,6 +325,7 @@ public func <~ <P: MutablePropertyType>(property: P, signal: Signal<P.Value, NoE
 ///
 /// - returns: A disposable that can be used to terminate binding before the
 ///            deinitialization of property or producer's `Completed` event.
+@discardableResult
 public func <~ <P: MutablePropertyType>(property: P, producer: SignalProducer<P.Value, NoError>) -> Disposable {
 	let disposable = CompositeDisposable()
 
@@ -365,6 +372,7 @@ public func <~ <P: MutablePropertyType>(property: P, producer: SignalProducer<P.
 /// - returns: A disposable that can be used to terminate binding before the
 ///            deinitialization of destination property or source property
 ///            producer's `Completed` event.
-public func <~ <Destination: MutablePropertyType, Source: PropertyType where Source.Value == Destination.Value>(destinationProperty: Destination, sourceProperty: Source) -> Disposable {
+@discardableResult
+public func <~ <Destination: MutablePropertyType, Source: PropertyType>(destinationProperty: Destination, sourceProperty: Source) -> Disposable where Source.Value == Destination.Value {
 	return destinationProperty <~ sourceProperty.producer
 }

@@ -10,8 +10,8 @@ import Foundation
 
 /// An atomic variable.
 public final class Atomic<Value> {
-	private var mutex = pthread_mutex_t()
-	private var _value: Value
+	fileprivate var mutex = pthread_mutex_t()
+	fileprivate var _value: Value
 	
 	/// Atomically get or set the value of the variable.
 	public var value: Value {
@@ -39,12 +39,12 @@ public final class Atomic<Value> {
 		assert(result == 0, "Failed to destroy mutex with error \(result).")
 	}
 
-	private func lock() {
+	fileprivate func lock() {
 		let result = pthread_mutex_lock(&mutex)
 		assert(result == 0, "Failed to lock \(self) with error \(result).")
 	}
 	
-	private func unlock() {
+	fileprivate func unlock() {
 		let result = pthread_mutex_unlock(&mutex)
 		assert(result == 0, "Failed to unlock \(self) with error \(result).")
 	}
@@ -55,7 +55,8 @@ public final class Atomic<Value> {
 	///   - newValue: A new value for the variable.
 	///
 	/// - returns: The old value.
-	public func swap(newValue: Value) -> Value {
+	@discardableResult
+	public func swap(_ newValue: Value) -> Value {
 		return modify { _ in newValue }
 	}
 
@@ -65,7 +66,8 @@ public final class Atomic<Value> {
 	///   - action: A closure that takes the current value.
 	///
 	/// - returns: The old value.
-	public func modify(@noescape action: (Value) throws -> Value) rethrows -> Value {
+	@discardableResult
+	public func modify(action: (Value) throws -> Value) rethrows -> Value {
 		return try withValue { value in
 			_value = try action(value)
 			return value
@@ -79,7 +81,8 @@ public final class Atomic<Value> {
 	///   - action: A closure that takes the current value.
 	///
 	/// - returns: The result of the action.
-	public func withValue<Result>(@noescape action: (Value) throws -> Result) rethrows -> Result {
+	@discardableResult
+	public func withValue<Result>(action: (Value) throws -> Result) rethrows -> Result {
 		lock()
 		defer { unlock() }
 

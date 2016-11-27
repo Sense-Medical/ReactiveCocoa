@@ -9,7 +9,7 @@
 import Foundation
 import enum Result.NoError
 
-extension NSNotificationCenter {
+extension NotificationCenter {
 	/// Returns a SignalProducer to observe posting of the specified
 	/// notification.
 	///
@@ -24,7 +24,7 @@ extension NSNotificationCenter {
 	///         will terminate immediately with an `Interrupted` event.
 	///         Otherwise, the producer will not terminate naturally, so it must
 	///         be explicitly disposed to avoid leaks.
-	public func rac_notifications(name: String? = nil, object: AnyObject? = nil) -> SignalProducer<NSNotification, NoError> {
+	public func rac_notifications(_ name: String? = nil, object: AnyObject? = nil) -> SignalProducer<Notification, NoError> {
 		// We're weakly capturing an optional reference here, which makes destructuring awkward.
 		let objectWasNil = (object == nil)
 		return SignalProducer { [weak object] observer, disposable in
@@ -32,8 +32,13 @@ extension NSNotificationCenter {
 				observer.sendInterrupted()
 				return
 			}
-
-			let notificationObserver = self.addObserverForName(name, object: object, queue: nil) { notification in
+			
+			guard let name = name else {
+				observer.sendInterrupted()
+				return
+			}
+			
+			let notificationObserver = self.addObserver(forName: NSNotification.Name(rawValue: name), object: object, queue: nil) { notification in
 				observer.sendNext(notification)
 			}
 
@@ -46,7 +51,7 @@ extension NSNotificationCenter {
 
 private let defaultSessionError = NSError(domain: "org.reactivecocoa.ReactiveCocoa.rac_dataWithRequest", code: 1, userInfo: nil)
 
-extension NSURLSession {
+extension URLSession {
 	/// Returns a SignalProducer which performs the work associated with an
 	/// `NSURLSession`
 	///
@@ -60,14 +65,14 @@ extension NSURLSession {
 	/// - note: This method will not send an error event in the case of a server
 	///         side error (i.e. when a response with status code other than
 	///         200...299 is received).
-	public func rac_dataWithRequest(request: NSURLRequest) -> SignalProducer<(NSData, NSURLResponse), NSError> {
+	public func rac_dataWithRequest(_ request: URLRequest) -> SignalProducer<(Data, URLResponse), NSError> {
 		return SignalProducer { observer, disposable in
-			let task = self.dataTaskWithRequest(request) { data, response, error in
-				if let data = data, response = response {
+			let task = self.dataTask(with: request) { data, response, error in
+				if let data = data, let response = response {
 					observer.sendNext((data, response))
 					observer.sendCompleted()
 				} else {
-					observer.sendFailed(error ?? defaultSessionError)
+					observer.sendFailed((error as? NSError) ?? defaultSessionError)
 				}
 			}
 
