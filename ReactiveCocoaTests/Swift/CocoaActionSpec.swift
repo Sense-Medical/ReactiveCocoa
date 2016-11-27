@@ -25,7 +25,7 @@ class CocoaActionSpec: QuickSpec {
 			it("should be compatible with UIKit") {
 				let control = UIControl(frame: CGRectZero)
 				control.addTarget(action.unsafeCocoaAction, action: CocoaAction.selector, forControlEvents: UIControlEvents.TouchDown)
-				control.sendActionsForControlEvents(UIControlEvents.TouchDown)
+				control.sendActions(for: UIControlEvents.touchDown)
 			}
 		#endif
 

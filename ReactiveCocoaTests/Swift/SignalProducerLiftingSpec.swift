@@ -1065,7 +1065,7 @@ class SignalProducerLiftingSpec: QuickSpec {
 				class Payload {
 					let action: () -> Void
 
-					init(onDeinit action: () -> Void) {
+					init(onDeinit action: @escaping () -> Void) {
 						self.action = action
 					}
 

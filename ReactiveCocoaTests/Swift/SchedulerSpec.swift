@@ -26,16 +26,16 @@ class SchedulerSpec: QuickSpec {
 		}
 
 		describe("UIScheduler") {
-			func dispatchSyncInBackground(action: () -> Void) {
-				let group = dispatch_group_create()
-				dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), action)
-				dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+			func dispatchSyncInBackground(_ action: () -> Void) {
+				let group = DispatchGroup()
+				dispatch_group_async(group, DispatchQueue.global(DispatchQueue.GlobalQueuePriority.high, 0), action)
+				group.wait(timeout: dispatch_time_t(DispatchTime.distantFuture))
 			}
 
 			it("should run actions immediately when on the main thread") {
 				let scheduler = UIScheduler()
 				var values: [Int] = []
-				expect(NSThread.isMainThread()) == true
+				expect(Thread.isMainThread) == true
 
 				scheduler.schedule {
 					values.append(0)
@@ -123,7 +123,7 @@ class SchedulerSpec: QuickSpec {
 				if #available(OSX 10.10, *) {
 					scheduler = QueueScheduler(qos: QOS_CLASS_DEFAULT)
 				} else {
-					scheduler = QueueScheduler(queue: dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0))
+					scheduler = QueueScheduler(queue: DispatchQueue.global(DispatchQueue.GlobalQueuePriority.default, 0))
 				}
 				scheduler.schedule {
 					didRun = true
@@ -140,9 +140,9 @@ class SchedulerSpec: QuickSpec {
 					if #available(OSX 10.10, *) {
 						scheduler = QueueScheduler(qos: QOS_CLASS_DEFAULT)
 					} else {
-						scheduler = QueueScheduler(queue: dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0))
+						scheduler = QueueScheduler(queue: DispatchQueue.global(DispatchQueue.GlobalQueuePriority.default, 0))
 					}
-					dispatch_suspend(scheduler.queue)
+					scheduler.queue.suspend()
 				}
 
 				it("should run enqueued actions serially on the given queue") {
@@ -157,7 +157,7 @@ class SchedulerSpec: QuickSpec {
 
 					expect(value) == 0
 
-					dispatch_resume(scheduler.queue)
+					scheduler.queue.resume()
 					expect{value}.toEventually(equal(5))
 				}
 
@@ -170,7 +170,7 @@ class SchedulerSpec: QuickSpec {
 
 					expect(didRun) == false
 
-					dispatch_resume(scheduler.queue)
+					scheduler.queue.resume()
 					expect{didRun}.toEventually(beTruthy())
 				}
 
@@ -192,7 +192,7 @@ class SchedulerSpec: QuickSpec {
 
 					expect(count) == 0
 
-					dispatch_resume(scheduler.queue)
+					scheduler.queue.resume()
 					expect{count}.toEventually(equal(timesToRun))
 				}
 			}

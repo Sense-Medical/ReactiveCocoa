@@ -1,0 +1,19 @@
+[
+ {
+  "file": "/Users/robertjpayne/Projects/sensemedical/ReactiveCocoa/ReactiveCocoa.playground/Sources/PlaygroundUtility.swift",
+  "offset": 45,
+  "text": "_ ",
+ },
+ {
+  "file": "/Users/robertjpayne/Projects/sensemedical/ReactiveCocoa/ReactiveCocoa.playground/Sources/PlaygroundUtility.swift",
+  "offset": 177,
+  "remove": 5,
+  "text": "r",
+ },
+ {
+  "file": "/Users/robertjpayne/Projects/sensemedical/ReactiveCocoa/ReactiveCocoa.playground/Sources/PlaygroundUtility.swift",
+  "offset": 191,
+  "remove": 1,
+  "text": "e",
+ }
+]

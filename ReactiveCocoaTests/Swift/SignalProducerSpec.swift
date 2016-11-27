@@ -207,7 +207,7 @@ class SignalProducerSpec: QuickSpec {
 		describe("init(result:)") {
 			it("should immediately send the value then complete") {
 				let producerValue = "StringValue"
-				let producerResult = .Success(producerValue) as Result<String, NSError>
+				let producerResult = .success(producerValue) as Result<String, NSError>
 				let signalProducer = SignalProducer(result: producerResult)
 
 				expect(signalProducer).to(sendValue(producerValue, sendError: nil, complete: true))
@@ -215,7 +215,7 @@ class SignalProducerSpec: QuickSpec {
 
 			it("should immediately send the error") {
 				let producerError = NSError(domain: "com.reactivecocoa.errordomain", code: 4815, userInfo: nil)
-				let producerResult = .Failure(producerError) as Result<String, NSError>
+				let producerResult = .failure(producerError) as Result<String, NSError>
 				let signalProducer = SignalProducer(result: producerResult)
 
 				expect(signalProducer).to(sendValue(nil, sendError: producerError, complete: false))
@@ -452,7 +452,7 @@ class SignalProducerSpec: QuickSpec {
 				let operation: () -> Result<String, NSError> = {
 					operationRunTimes += 1
 
-					return .Success("OperationValue")
+					return .success("OperationValue")
 				}
 
 				SignalProducer.attempt(operation).start()
@@ -464,7 +464,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should send the value then complete") {
 				let operationReturnValue = "OperationValue"
 				let operation: () -> Result<String, NSError> = {
-					return .Success(operationReturnValue)
+					return .success(operationReturnValue)
 				}
 
 				let signalProducer = SignalProducer.attempt(operation)
@@ -475,7 +475,7 @@ class SignalProducerSpec: QuickSpec {
 			it("should send the error") {
 				let operationError = NSError(domain: "com.reactivecocoa.errordomain", code: 4815, userInfo: nil)
 				let operation: () -> Result<String, NSError> = {
-					return .Failure(operationError)
+					return .failure(operationError)
 				}
 
 				let signalProducer = SignalProducer.attempt(operation)
@@ -781,7 +781,7 @@ class SignalProducerSpec: QuickSpec {
 					let otherProducer = SignalProducer<Int, NoError>(values: [3, 4])
 
 					var counter = 0
-					let transform = { (signal: Signal<Int, NoError>) -> Signal<Int, NoError> -> Signal<(Int, Int), NoError> in
+					let transform = { (signal: Signal<Int, NoError>) -> (Signal<Int, NoError>) -> Signal<(Int, Int), NoError> in
 						return { otherSignal in
 							counter += 1
 							return zip(signal, otherSignal)
@@ -802,7 +802,7 @@ class SignalProducerSpec: QuickSpec {
 					let baseProducer = SignalProducer<Int, NoError>(values: [1, 2, 3])
 					let otherProducer = SignalProducer<Int, NoError>(values: [4, 5, 6])
 
-					let transform = { (signal: Signal<Int, NoError>) -> Signal<Int, NoError> -> Signal<Int, NoError> in
+					let transform = { (signal: Signal<Int, NoError>) -> (Signal<Int, NoError>) -> Signal<Int, NoError> in
 						return { otherSignal in
 							return zip(signal, otherSignal).map { first, second in first + second }
 						}
@@ -821,7 +821,7 @@ class SignalProducerSpec: QuickSpec {
 					let (otherSignal, otherSignalObserver) = Signal<Int, NoError>.pipe()
 
 					var counter = 0
-					let transform = { (signal: Signal<Int, NoError>) -> Signal<Int, NoError> -> Signal<(Int, Int), NoError> in
+					let transform = { (signal: Signal<Int, NoError>) -> (Signal<Int, NoError>) -> Signal<(Int, Int), NoError> in
 						return { otherSignal in
 							counter += 1
 							return zip(signal, otherSignal)
@@ -844,7 +844,7 @@ class SignalProducerSpec: QuickSpec {
 					let baseProducer = SignalProducer<Int, NoError>(values: [ 1, 2, 3 ])
 					let (otherSignal, otherSignalObserver) = Signal<Int, NoError>.pipe()
 
-					let transform = { (signal: Signal<Int, NoError>) -> Signal<Int, NoError> -> Signal<Int, NoError> in
+					let transform = { (signal: Signal<Int, NoError>) -> (Signal<Int, NoError>) -> Signal<Int, NoError> in
 						return { otherSignal in
 							return zip(signal, otherSignal).map(+)
 						}
@@ -1384,7 +1384,7 @@ class SignalProducerSpec: QuickSpec {
 			describe("interruption") {
 				var innerObserver: Signal<(), NoError>.Observer!
 				var outerObserver: Signal<SignalProducer<(), NoError>, NoError>.Observer!
-				var execute: (FlattenStrategy -> Void)!
+				var execute: ((FlattenStrategy) -> Void)!
 
 				var interrupted = false
 				var completed = false
@@ -1478,7 +1478,7 @@ class SignalProducerSpec: QuickSpec {
 			describe("disposal") {
 				var completeOuter: (() -> Void)!
 				var disposeOuter: (() -> Void)!
-				var execute: (FlattenStrategy -> Void)!
+				var execute: ((FlattenStrategy) -> Void)!
 
 				var innerDisposable = SimpleDisposable()
 				var interrupted = false
@@ -1770,19 +1770,19 @@ class SignalProducerSpec: QuickSpec {
 		describe("first") {
 			it("should start a signal then block on the first value") {
 				let (_signal, observer) = Signal<Int, NoError>.pipe()
-				let queue = dispatch_queue_create("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
+				let queue = DispatchQueue("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
 				let producer = SignalProducer(signal: _signal.delay(0.1, onScheduler: QueueScheduler(queue: queue)))
 
 				var result: Result<Int, NoError>?
 
-				let group = dispatch_group_create()
-				dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+				let group = DispatchGroup()
+				dispatch_group_async(group, DispatchQueue.global(DispatchQueue.GlobalQueuePriority.default, 0)) {
 					result = producer.first()
 				}
 				expect(result).to(beNil())
 
 				observer.sendNext(1)
-				dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+				group.wait(dispatch_time_t(timeout: DispatchTime.distantFuture))
 				expect(result?.value) == 1
 			}
 
@@ -1805,13 +1805,13 @@ class SignalProducerSpec: QuickSpec {
 		describe("single") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, NoError>.pipe()
-				let queue = dispatch_queue_create("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
+				let queue = DispatchQueue("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
 				let producer = SignalProducer(signal: _signal.delay(0.1, onScheduler: QueueScheduler(queue: queue)))
 
 				var result: Result<Int, NoError>?
 
-				let group = dispatch_group_create()
-				dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+				let group = DispatchGroup()
+				dispatch_group_async(group, DispatchQueue.global(DispatchQueue.GlobalQueuePriority.default, 0)) {
 					result = producer.single()
 				}
 				expect(result).to(beNil())
@@ -1820,7 +1820,7 @@ class SignalProducerSpec: QuickSpec {
 				expect(result).to(beNil())
 
 				observer.sendCompleted()
-				dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+				group.wait(dispatch_time_t(timeout: DispatchTime.distantFuture))
 				expect(result?.value) == 1
 			}
 
@@ -1843,13 +1843,13 @@ class SignalProducerSpec: QuickSpec {
 		describe("last") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, NoError>.pipe()
-				let queue = dispatch_queue_create("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
+				let queue = DispatchQueue("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
 				let producer = SignalProducer(signal: _signal.delay(0.1, onScheduler: QueueScheduler(queue: queue)))
 
 				var result: Result<Int, NoError>?
 
-				let group = dispatch_group_create()
-				dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+				let group = DispatchGroup()
+				dispatch_group_async(group, DispatchQueue.global(DispatchQueue.GlobalQueuePriority.default, 0)) {
 					result = producer.last()
 				}
 				expect(result).to(beNil())
@@ -1859,7 +1859,7 @@ class SignalProducerSpec: QuickSpec {
 				expect(result).to(beNil())
 
 				observer.sendCompleted()
-				dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+				group.wait(dispatch_time_t(timeout: DispatchTime.distantFuture))
 				expect(result?.value) == 2
 			}
 
@@ -1882,19 +1882,19 @@ class SignalProducerSpec: QuickSpec {
 		describe("wait") {
 			it("should start a signal then block until completion") {
 				let (_signal, observer) = Signal<Int, NoError>.pipe()
-				let queue = dispatch_queue_create("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
+				let queue = DispatchQueue("\(#file):\(#line)", DISPATCH_QUEUE_SERIAL)
 				let producer = SignalProducer(signal: _signal.delay(0.1, onScheduler: QueueScheduler(queue: queue)))
 
 				var result: Result<(), NoError>?
 
-				let group = dispatch_group_create()
-				dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+				let group = DispatchGroup()
+				dispatch_group_async(group, DispatchQueue.global(DispatchQueue.GlobalQueuePriority.default, 0)) {
 					result = producer.wait()
 				}
 				expect(result).to(beNil())
 
 				observer.sendCompleted()
-				dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+				group.wait(dispatch_time_t(timeout: DispatchTime.distantFuture))
 				expect(result?.value).toNot(beNil())
 			}
 
@@ -1931,7 +1931,7 @@ class SignalProducerSpec: QuickSpec {
 				if #available(OSX 10.10, *) {
 					scheduler = QueueScheduler()
 				} else {
-					scheduler = QueueScheduler(queue: dispatch_get_main_queue())
+					scheduler = QueueScheduler(queue: DispatchQueue.main)
 				}
 
 				// Delaying producer1 from sending a value to test whether producer2 is started in the mean-time.
@@ -2187,9 +2187,9 @@ class SignalProducerSpec: QuickSpec {
 
 				it("does not leak buffered values") {
 					final class Value {
-						private let deinitBlock: () -> Void
+						fileprivate let deinitBlock: () -> Void
 
-						init(deinitBlock: () -> Void) {
+						init(deinitBlock: @escaping () -> Void) {
 							self.deinitBlock = deinitBlock
 						}
 
@@ -2224,7 +2224,7 @@ class SignalProducerSpec: QuickSpec {
 			
 			describe("log events") {
 				it("should output the correct event") {
-					let expectations: [String -> Void] = [
+					let expectations: [(String) -> Void] = [
 						{ event in expect(event) == "[] Started" },
 						{ event in expect(event) == "[] Next 1" },
 						{ event in expect(event) == "[] Completed" },
@@ -2271,7 +2271,7 @@ extension SignalProducer {
 
 	/// Creates a producer that can be started as many times as elements in `results`.
 	/// Each signal will immediately send either a value or an error.
-	private static func attemptWithResults<C: CollectionType where C.Generator.Element == Result<Value, Error>, C.Index.Distance == Int>(results: C) -> SignalProducer<Value, Error> {
+	fileprivate static func attemptWithResults<C: Collection>(_ results: C) -> SignalProducer<Value, Error> where C.Generator.Element == Result<Value, Error>, C.Index.Distance == Int {
 		let resultCount = results.count
 		var operationIndex = 0
 

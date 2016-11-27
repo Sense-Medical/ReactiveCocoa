@@ -10,12 +10,12 @@ import ReactiveCocoa
 import Result
 
 enum TestError: Int {
-	case Default = 0
-	case Error1 = 1
-	case Error2 = 2
+	case `default` = 0
+	case error1 = 1
+	case error2 = 2
 }
 
-extension TestError: ErrorType {
+extension TestError: Error {
 }
 
 
